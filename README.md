@@ -11,9 +11,9 @@ emergency call recordings.
 ## Project structure
 
 ```
-notruf-app/
+EmergencyCallTranscription/
 ├── src/
-│   └── notruf_app.py      # Gradio web UI
+│   └── EmergencyCallTranscription.py      # Gradio web UI
 ├── requirements.txt       # all Python dependencies
 ├── setup_und_start.sh     # setup & launch script
 └── README.md
@@ -24,7 +24,7 @@ notruf-app/
 ## Quick start
 
 ```bash
-cd notruf-app
+cd EmergencyCallTranscription
 chmod +x setup_und_start.sh
 bash setup_und_start.sh
 ```
@@ -44,9 +44,9 @@ then caches them locally under `~/.cache`.
 ## Manual start (after installation)
 
 ```bash
-cd notruf-app
+cd EmergencyCallTranscription
 source venv/bin/activate
-python src/notruf_app.py
+python src/EmergencyCallTranscription.py
 ```
 
 ---
@@ -168,7 +168,7 @@ sudo mkswap /swapfile && sudo swapon /swapfile
 
 **Change model (speed vs. accuracy)**
 
-Edit the `load_model` call in `src/notruf_app.py`:
+Edit the `load_model` call in `src/EmergencyCallTranscription.py`:
 ```python
 asr_model = whisperx.load_model("medium", ...)      # faster, slightly less accurate
 asr_model = whisperx.load_model("large-v3", ...)    # default

@@ -9,7 +9,7 @@
 set -euo pipefail
 
 VENV_DIR="$(pwd)/venv"
-APP="src/notruf_app.py"
+APP="src/EmergencyCallTranscription.py"
 
 echo ""
 echo "════════════════════════════════════════════════"
