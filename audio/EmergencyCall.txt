@@ -1,0 +1,55 @@
+Part 1: Die Leitstelle (Leitstellen-Stimme wählen)
+[authoritative, calm, professional]
+Feuerwehr Berlin, Notruf... Wo genau ist der Notfallort?
+
+Part 2: Der Anrufer (Männliche Stimme, emotionaler)
+[panicked, breathless, gasping]
+Torstraße! Ecke Friedrichstraße! Hier ist ein schwerer Unfall... Auto gegen Radfahrer! Kommen Sie schnell!
+
+Part 3: Die Leitstelle
+[stern, clinical, fast]
+Torstraße, Friedrichstraße. Hab ich. Wie viele Verletzte?
+
+Part 4: Der Anrufer
+[shaky, distressed]
+Eine Frau... sie liegt auf der Fahrbahn. Der Wagen hat sie voll erwischt... sie bewegt sich kaum!
+
+Part 5: Die Leitstelle
+[demanding, calm]
+Ist sie wach? Spricht sie mit Ihnen?
+
+Part 6: Der Anrufer
+[shouting, calling out]
+Hallo?! Hören Sie mich?! [back to phone, whispering, shocked] Nein... sie stöhnt nur. Sie kriegt gar nichts mit. Ich seh hier eine Tasche... Sabine Meyer... ja, das muss ihr Name sein.
+
+Part 7: Die Leitstelle
+[cold, blunt]
+Lassen Sie die Tasche. Atmet sie? Hebt und senkt sich der Brustkorb?
+
+Part 8: Der Anrufer
+[fast, hurried]
+Ja... ja, sie atmet. Aber sie zittert am ganzen Körper... sie ist völlig blass!
+
+Part 9: Die Leitstelle
+[authoritative, reassuring]
+Hilfe ist unterwegs. Nicht bewegen. Werden andere Personen gefährdet?
+
+Part 10: Der Anrufer
+[looking around, focused]
+Nein, wir blockieren die Spur. Der Autofahrer ist auch hier... Uwe Fischer heißt der. Der steht völlig unter Schock.
+
+Part 11: Die Leitstelle
+[commanding, fast]
+Er soll absichern. Warndreieck raus. Ihr Name und Ihre Nummer?
+
+Part 12: Der Anrufer
+[concentrated, clearer]
+Lars Schulze. 0-1-7-2... 9-8-7-6-5-4-3.
+
+Part 13: Die Leitstelle
+[flat, ending]
+Gut. Wenn sie aufhört zu atmen, sofort wieder 112. Ich lege jetzt auf.
+
+Part 14: Der Anrufer
+[surprised, abrupt]
+Okay... ja.
