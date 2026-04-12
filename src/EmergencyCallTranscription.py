@@ -356,7 +356,7 @@ with gradio.Blocks() as demo:
         with gradio.Column(scale = 2):
 
             COPY_BUTTON = { "buttons": ["copy"] }
-            lines = 10
+            lines = 20
 
             with gradio.Tab("📄 Rohtranskript (Dialog)"):
                 roh_out = gradio.Textbox(
