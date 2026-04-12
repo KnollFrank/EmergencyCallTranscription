@@ -61,7 +61,7 @@ MARKER="$VENV_DIR/.packages_installed"
 
 if [ ! -f "$MARKER" ]; then
     echo ""
-    echo "▶  Installing dependencies (first run: 5–10 min) ..."
+    echo "▶  Installing dependencies ..."
     echo ""
 
     pip install --upgrade pip
@@ -121,7 +121,7 @@ echo "  Starting app ..."
 echo "  → http://127.0.0.1:7860"
 echo ""
 echo "  First start: models will be downloaded"
-echo "    WhisperX large-v3  ~1.5 GB"
+echo "    WhisperX large-v3"
 echo "  (cached locally under ~/.cache afterwards)"
 echo ""
 echo "  Stop: Ctrl+C"
