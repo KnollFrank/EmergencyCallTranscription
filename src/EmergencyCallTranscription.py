@@ -226,8 +226,7 @@ def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
 # MAIN CALLBACK (Gradio)
 # ─────────────────────────────────────────────────────────
 
-# FK-TODO: entferne Parameter anonymize_active und die Checkbox aus der UI, da Anonymisierung immer aktiv sein soll. Alle Stellen im Code anpassen.
-def process_call(audio_path, anonymize_active):
+def process_call(audio_path):
     """
     Gradio generator callback.
     Transcribes BOTH channels separately and merges them into a dialogue.
@@ -268,16 +267,6 @@ def process_call(audio_path, anonymize_active):
     yield "", "", "", "🔗  Führe Dialog zusammen ..."
     segments = merge_dialogue(seg_dispatcher, seg_caller)
     raw_text = dialogue_to_text(segments, anon = False)
-
-    if not anonymize_active:
-        # FK-TODO: Segmente für Anrufer und Disponent sind uninteressant, also entfernen.
-        status = (
-            f"✅  Fertig | Anrufer: {len(seg_caller)} Segmente, "
-            f"Disponent: {len(seg_dispatcher)} Segmente | "
-            "Anonymisierung deaktiviert"
-        )
-        yield raw_text, "(Anonymisierung nicht aktiviert)", "–", status
-        return
 
     # ── Step 5: anonymize every segment ──────────────────
     yield raw_text, "", "", "🔒  Presidio anonymisiert ..."
@@ -358,17 +347,11 @@ with gradio.Blocks() as demo:
                 type = "filepath",
                 sources = ["upload"])
 
-            anon_toggle = gradio.Checkbox(
-                value = True,
-                label = "DSGVO-Anonymisierung (Presidio)",
-                info = "Erkennt und ersetzt Namen, Orte, Telefonnummern etc.")
-
             with gradio.Row():
                 start_btn = gradio.Button("▶  Verarbeiten", variant = "primary")
                 clear_btn = gradio.ClearButton(
                     components =[audio_input],
-                    value = "🗑  Reset",
-                )
+                    value = "🗑  Reset")
 
             gradio.Markdown("""
             ---
@@ -448,7 +431,7 @@ with gradio.Blocks() as demo:
     # connect callback – channel selection removed, both channels always processed
     start_btn.click(
         fn = process_call,
-        inputs = [audio_input, anon_toggle],
+        inputs = [audio_input],
         outputs = [roh_out, anon_out, pii_out, status_out])
 
 # ─────────────────────────────────────────────────────────
