@@ -324,39 +324,26 @@ LAUNCH_KWARGS = {
     "css": ".footer { font-size: 0.8em; color: #888; }",
 }
 
-with gradio.Blocks() as demo:
-    
+with gradio.Blocks(title = "Notruf-Transkription") as demo:
     gradio.Markdown("# Notruf-Transkription & Anonymisierung")
-
     with gradio.Row():
-
-        # ── left column: input ────────────────────────────
         with gradio.Column(scale = 1, min_width = 280):
-
             audio_input = gradio.Audio(
                 label = "Notruf-WAV hochladen (Stereo, 8 kHz)",
                 type = "filepath",
                 sources = ["upload"])
-
-            with gradio.Row():
-                clear_btn = gradio.ClearButton(value = "🗑  Reset")
-
             gradio.Markdown("""
             ---
             **Kanalzuweisung (fest):**
             - Kanal 0 links  → Disponent
             - Kanal 1 rechts → Anrufer
             """)
-
-        # ── right column: output ──────────────────────────
         with gradio.Column(scale = 2):
-
             COPY_BUTTON = { "buttons": ["copy"] }
             lines = 20
-
-            with gradio.Tab("📄 Rohtranskript (Dialog)"):
+            with gradio.Tab("📄 Rohtranskript"):
                 roh_out = gradio.Textbox(
-                    label = "Gesprächsprotokoll mit Zeitstempeln",
+                    label = "Gesprächsprotokoll",
                     lines = lines,
                     placeholder = (
                         "[00.00s – 03.21s]  Anrufer:\n"
@@ -366,8 +353,7 @@ with gradio.Blocks() as demo:
                         "[05.30s – 08.40s]  Anrufer:\n"
                         "    Hauptstraße 12, vor dem Supermarkt ..."),
                     **COPY_BUTTON)
-
-            with gradio.Tab("🔒 Anonymisiert (Dialog)"):
+            with gradio.Tab("🔒 Anonymisiert"):
                 anon_out = gradio.Textbox(
                     label = "Anonymisiertes Gesprächsprotokoll",
                     lines = lines,
@@ -380,20 +366,17 @@ with gradio.Blocks() as demo:
                         "    <ORT>, vor dem Supermarkt ..."
                     ),
                     **COPY_BUTTON)
-
             status_out = gradio.Textbox(
                 label = "Status",
                 lines = 2,
                 interactive = False)
-
     audio_input.upload(
         fn = process_call,
         inputs = [audio_input],
         outputs = [roh_out, anon_out, status_out])
-    clear_btn.add(components = [audio_input, roh_out, anon_out, status_out])
+    audio_input.clear(
+        fn = lambda: ("", "", ""),
+        outputs = [roh_out, anon_out, status_out])
 
-# ─────────────────────────────────────────────────────────
-# ENTRY POINT
-# ─────────────────────────────────────────────────────────
 if __name__ == "__main__":
     demo.launch(**LAUNCH_KWARGS)
