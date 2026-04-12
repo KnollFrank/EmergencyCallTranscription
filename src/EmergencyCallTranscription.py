@@ -315,7 +315,7 @@ LAUNCH_KWARGS = {
 with gradio.Blocks(
     title = "Notruf-Transkription",
     theme = gradio.themes.Soft()
-    ) as demo:
+) as demo:
     gradio.Markdown("# Notruf-Transkription & Anonymisierung")
     with gradio.Row():
         with gradio.Column(scale = 1, min_width = 280):
@@ -334,7 +334,6 @@ with gradio.Blocks(
                 lines = 3,
                 interactive = False,
                 elem_id = "status-box")
-
         with gradio.Column(scale = 2):
             COPY_BUTTON = { "buttons": ["copy"] }
             lines = 20
@@ -362,12 +361,12 @@ with gradio.Blocks(
                         "[05.30s – 08.40s]  Anrufer:\n"
                         "    <ORT>, vor dem Supermarkt ..."),
                     **COPY_BUTTON)
-
     outputs = [roh_out, anon_out, status_out]
     audio_input.upload(
         fn = process_call,
         inputs = [audio_input],
-        outputs = outputs)
+        outputs = outputs,
+        show_progress_on = [status_out])
     audio_input.clear(
         fn = lambda: ("", "", ""),
         outputs = outputs)
