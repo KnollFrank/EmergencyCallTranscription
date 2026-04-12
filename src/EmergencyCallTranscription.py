@@ -127,7 +127,7 @@ def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
     """
     Transcribe a 16 kHz mono signal with WhisperX.
     Returns a list of segment dicts:
-        [{"sprecher": str, "start": float, "end": float, "text": str}]
+        [{"speaker": str, "start": float, "end": float, "text": str}]
     """
     # FK-TODO: extract method
     # write audio to a temp file – WhisperX expects a file path
@@ -158,11 +158,11 @@ def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
     segments = []
     for seg in result.get("segments", []):
         segments.append({
-            # FK-TODO: rename "sprecher" to "speaker" in all places
-            "sprecher": speaker,
-            "start":    round(float(seg["start"]), 2),
-            "end":      round(float(seg["end"]),   2),
-            "text":     seg["text"].strip(),
+            "speaker": speaker,
+            # FK-TODO: extract method for rounding timestamps
+            "start": round(float(seg["start"]), 2),
+            "end": round(float(seg["end"]), 2),
+            "text": seg["text"].strip(),
         })
     return segments
 
@@ -210,7 +210,7 @@ def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
 
     for seg in segments:
         text    = seg.get("text_anon", seg["text"]) if anon else seg["text"]
-        speaker = seg["sprecher"]
+        speaker = seg["speaker"]
 
         # blank line on speaker change for readability
         if last_speaker is not None and speaker != last_speaker:
@@ -309,7 +309,7 @@ def process_call(audio_path, anonymize_active):
         # NOTE: no raw text field in the export
         "dialogue": [
             {
-                "speaker": seg["sprecher"],
+                "speaker": seg["speaker"],
                 "start":   seg["start"],
                 "end":     seg["end"],
                 "text":    seg["text_anon"],
