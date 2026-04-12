@@ -337,7 +337,7 @@ with gradio.Blocks(
         with gradio.Column(scale = 2):
             COPY_BUTTON = { "buttons": ["copy"] }
             lines = 20
-            with gradio.Tab("📄 Rohtranskript"):
+            with gradio.Tab("📄 Gesprächsprotokoll"):
                 roh_out = gradio.Textbox(
                     label = "Gesprächsprotokoll",
                     lines = lines,
@@ -349,7 +349,7 @@ with gradio.Blocks(
                         "[05.30s – 08.40s]  Anrufer:\n"
                         "    Hauptstraße 12, vor dem Supermarkt ..."),
                     **COPY_BUTTON)
-            with gradio.Tab("🔒 Anonymisiert"):
+            with gradio.Tab("🔒 Anonymisiertes Gesprächsprotokoll"):
                 anon_out = gradio.Textbox(
                     label = "Anonymisiertes Gesprächsprotokoll",
                     lines = lines,
