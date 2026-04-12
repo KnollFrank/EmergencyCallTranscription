@@ -164,6 +164,7 @@ def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
     segments = []
     for seg in result.get("segments", []):
         segments.append({
+            # FK-TODO: rename "sprecher" to "speaker" in all places
             "sprecher": speaker,
             "start":    round(float(seg["start"]), 2),
             "end":      round(float(seg["end"]),   2),
@@ -190,14 +191,14 @@ def anonymize_text(text: str) -> tuple[str, list[str]]:
     return anon.text, types
 
 def merge_dialogue(
-    segments_caller: list[dict],
     segments_dispatcher: list[dict],
+    segments_caller: list[dict],
 ) -> list[dict]:
     """
     Merge segments from both channels into a single chronological list,
     sorted by start time.
     """
-    return sorted(segments_caller + segments_dispatcher, key = lambda s: s["start"])
+    return sorted(segments_dispatcher + segments_caller, key = lambda s: s["start"])
 
 def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
     """
@@ -231,6 +232,7 @@ def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
 # MAIN CALLBACK (Gradio)
 # ─────────────────────────────────────────────────────────
 
+# FK-TODO: entferne Parameter anonymize_active und die Checkbox aus der UI, da Anonymisierung immer aktiv sein soll. Alle Stellen im Code anpassen.
 def process_call(audio_path, anonymize_active):
     """
     Gradio generator callback.
@@ -244,23 +246,15 @@ def process_call(audio_path, anonymize_active):
     # ── Step 1: extract both channels ────────────────────
     yield "", "", "", "🔊  Kanäle extrahieren (8 kHz → 16 kHz) ..."
     try:
-        audio_caller     = extract_channel(audio_path, channel_idx=1)  # right
-        audio_dispatcher = extract_channel(audio_path, channel_idx=0)  # left
+        audio_dispatcher = extract_channel(audio_path, channel_idx=0)
+        audio_caller = extract_channel(audio_path, channel_idx=1)
     except Exception as e:
         yield "", "", "", f"❌  Fehler beim Kanal-Extrahieren: {e}"
         return
 
     duration_s = round(len(audio_caller) / 16000)
 
-    # ── Step 2: transcribe caller channel ────────────────
-    yield "", "", "", f"📝  WhisperX transkribiert Anrufer ({duration_s} s) – bitte warten ..."
-    try:
-        seg_caller = transcribe(audio_caller, speaker="Anrufer")
-    except Exception as e:
-        yield "", "", "", f"❌  Fehler bei Transkription (Anrufer): {e}"
-        return
-
-    # ── Step 3: transcribe dispatcher channel ────────────
+    # ── Step 2: transcribe dispatcher channel ────────────
     yield "", "", "", f"📝  WhisperX transkribiert Disponenten ({duration_s} s) – bitte warten ..."
     try:
         seg_dispatcher = transcribe(audio_dispatcher, speaker="Disponent")
@@ -268,12 +262,21 @@ def process_call(audio_path, anonymize_active):
         yield "", "", "", f"❌  Fehler bei Transkription (Disponent): {e}"
         return
 
+    # ── Step 3: transcribe caller channel ────────────────
+    yield "", "", "", f"📝  WhisperX transkribiert Anrufer ({duration_s} s) – bitte warten ..."
+    try:
+        seg_caller = transcribe(audio_caller, speaker="Anrufer")
+    except Exception as e:
+        yield "", "", "", f"❌  Fehler bei Transkription (Anrufer): {e}"
+        return
+
     # ── Step 4: merge into chronological dialogue ─────────
     yield "", "", "", "🔗  Führe Dialog zusammen ..."
-    segments = merge_dialogue(seg_caller, seg_dispatcher)
-    raw_text = dialogue_to_text(segments, anon=False)
+    segments = merge_dialogue(seg_dispatcher, seg_caller)
+    raw_text = dialogue_to_text(segments, anon = False)
 
     if not anonymize_active:
+        # FK-TODO: Segmente für Anrufer und Disponent sind uninteressant, also entfernen.
         status = (
             f"✅  Fertig | Anrufer: {len(seg_caller)} Segmente, "
             f"Disponent: {len(seg_dispatcher)} Segmente | "
@@ -284,15 +287,15 @@ def process_call(audio_path, anonymize_active):
 
     # ── Step 5: anonymize every segment ──────────────────
     yield raw_text, "", "", "🔒  Presidio anonymisiert ..."
-    all_types: set[str] = set()
 
+    all_types: set[str] = set()
     for seg in segments:
         anon_text, types = anonymize_text(seg["text"])
         seg["text_anon"] = anon_text
         all_types.update(types)
 
-    anon_formatted = dialogue_to_text(segments, anon=True)
-    pii_report     = ", ".join(sorted(all_types)) if all_types else "Keine PII erkannt"
+    anon_formatted = dialogue_to_text(segments, anon = True)
+    pii_report = ", ".join(sorted(all_types)) if all_types else "Keine PII erkannt"
 
     # ── Step 6: export anonymized JSON (raw text excluded) ─
     timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -305,6 +308,7 @@ def process_call(audio_path, anonymize_active):
             "model_asr":           "whisperx-large-v3",
             "anonymized":          True,
             "pii_types":           sorted(all_types),
+            # FK-TODO: Segmente für Anrufer und Disponent sind uninteressant, also entfernen.
             "segments_caller":     len(seg_caller),
             "segments_dispatcher": len(seg_dispatcher),
         },
@@ -320,11 +324,12 @@ def process_call(audio_path, anonymize_active):
         ],
     }
 
-    with open(export_path, "w", encoding="utf-8") as f:
-        json.dump(export_data, f, ensure_ascii=False, indent=2)
+    with open(export_path, "w", encoding = "utf-8") as f:
+        json.dump(export_data, f, ensure_ascii = False, indent=2)
 
     status = (
         f"✅  Fertig | "
+        # FK-TODO: Segmente für Anrufer und Disponent sind uninteressant, also entfernen.
         f"Anrufer: {len(seg_caller)} Segmente, "
         f"Disponent: {len(seg_dispatcher)} Segmente | "
         f"PII: {pii_report} | "
