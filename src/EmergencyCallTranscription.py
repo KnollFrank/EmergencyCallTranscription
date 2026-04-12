@@ -230,46 +230,46 @@ def process_call(audio_path):
     """
     Gradio generator callback.
     Transcribes BOTH channels separately and merges them into a dialogue.
-    Yields: (raw_text, anon_text, pii_report, status)
+    Yields: (raw_text, anon_text, status)
     """
     if audio_path is None:
-        yield "", "", "", "⚠️  Bitte zuerst eine WAV-Datei hochladen."
+        yield "", "", "⚠️  Bitte zuerst eine WAV-Datei hochladen."
         return
 
     # ── Step 1: extract both channels ────────────────────
-    yield "", "", "", "🔊  Kanäle extrahieren (8 kHz → 16 kHz) ..."
+    yield "", "", "🔊  Kanäle extrahieren (8 kHz → 16 kHz) ..."
     try:
         audio_dispatcher = extract_channel(audio_path, channel_idx=0)
         audio_caller = extract_channel(audio_path, channel_idx=1)
     except Exception as e:
-        yield "", "", "", f"❌  Fehler beim Kanal-Extrahieren: {e}"
+        yield "", "", f"❌  Fehler beim Kanal-Extrahieren: {e}"
         return
 
     duration_s = round(len(audio_caller) / 16000)
 
     # ── Step 2: transcribe dispatcher channel ────────────
-    yield "", "", "", f"📝  WhisperX transkribiert Disponenten ({duration_s} s) – bitte warten ..."
+    yield "", "", f"📝  WhisperX transkribiert Disponenten ({duration_s} s) – bitte warten ..."
     try:
         seg_dispatcher = transcribe(audio_dispatcher, speaker="Disponent")
     except Exception as e:
-        yield "", "", "", f"❌  Fehler bei Transkription (Disponent): {e}"
+        yield "", "", f"❌  Fehler bei Transkription (Disponent): {e}"
         return
 
     # ── Step 3: transcribe caller channel ────────────────
-    yield "", "", "", f"📝  WhisperX transkribiert Anrufer ({duration_s} s) – bitte warten ..."
+    yield "", "", f"📝  WhisperX transkribiert Anrufer ({duration_s} s) – bitte warten ..."
     try:
         seg_caller = transcribe(audio_caller, speaker="Anrufer")
     except Exception as e:
-        yield "", "", "", f"❌  Fehler bei Transkription (Anrufer): {e}"
+        yield "", "", f"❌  Fehler bei Transkription (Anrufer): {e}"
         return
 
     # ── Step 4: merge into chronological dialogue ─────────
-    yield "", "", "", "🔗  Führe Dialog zusammen ..."
+    yield "", "", "🔗  Führe Dialog zusammen ..."
     segments = merge_dialogue(seg_dispatcher, seg_caller)
     raw_text = dialogue_to_text(segments, anon = False)
 
     # ── Step 5: anonymize every segment ──────────────────
-    yield raw_text, "", "", "🔒  Presidio anonymisiert ..."
+    yield raw_text, "", "🔒  Presidio anonymisiert ..."
 
     all_types: set[str] = set()
     for seg in segments:
@@ -278,7 +278,6 @@ def process_call(audio_path):
         all_types.update(types)
 
     anon_formatted = dialogue_to_text(segments, anon = True)
-    pii_report = ", ".join(sorted(all_types)) if all_types else "Keine PII erkannt"
 
     # ── Step 6: export anonymized JSON (raw text excluded) ─
     timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -309,10 +308,9 @@ def process_call(audio_path):
 
     status = (
         f"✅  Fertig | "
-        f"PII: {pii_report} | "
         f"Export → {export_path}"
     )
-    yield raw_text, anon_formatted, pii_report, status
+    yield raw_text, anon_formatted, status
 
 
 # ─────────────────────────────────────────────────────────
@@ -392,17 +390,6 @@ with gradio.Blocks() as demo:
                     ),
                     **COPY_BUTTON)
 
-            # FK-TODO: remove PII-Bericht?
-            with gradio.Tab("ℹ️ PII-Bericht"):
-                pii_out = gradio.Textbox(
-                    label = "Erkannte PII-Kategorien",
-                    lines = 3,
-                    placeholder = "PERSON, LOCATION, PHONE_NUMBER")
-                gradio.Markdown("""
-                **Platzhalter-Legende:**
-                `<PERSON>` · `<ORT>` · `<TELEFON>` · `<DATUM>` · `<EMAIL>` · `<IBAN>` · `<KENNZEICHEN>`
-                """)
-
             status_out = gradio.Textbox(
                 label = "Status",
                 lines = 2,
@@ -426,7 +413,7 @@ with gradio.Blocks() as demo:
     start_btn.click(
         fn = process_call,
         inputs = [audio_input],
-        outputs = [roh_out, anon_out, pii_out, status_out])
+        outputs = [roh_out, anon_out, status_out])
 
 # ─────────────────────────────────────────────────────────
 # ENTRY POINT
