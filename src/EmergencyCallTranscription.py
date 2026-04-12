@@ -342,10 +342,12 @@ def process_call(audio_path, anonymize_active):
 # GRADIO UI
 # ─────────────────────────────────────────────────────────
 
+theme = gradio.themes.Soft()
+css = ".footer { font-size: 0.8em; color: #888; }"
 BLOCK_KWARGS = {
     "title": "Notruf-Transkription",
-    "theme": gradio.themes.Soft(),
-    "css": ".footer { font-size: 0.8em; color: #888; }",
+    "theme": theme,
+    "css": css,
 }
 LAUNCH_KWARGS = {
     "server_name": "127.0.0.1",
@@ -355,10 +357,9 @@ LAUNCH_KWARGS = {
 }
 if GRADIO_6:
     BLOCK_KWARGS = {}
-    # FK-TODO: use BLOCK_KWARGS from definition
     LAUNCH_KWARGS.update(
-        theme = gradio.themes.Soft(),
-        css = ".footer { font-size: 0.8em; color: #888; }")
+        theme = theme,
+        css = css)
 
 with gradio.Blocks(**BLOCK_KWARGS) as demo:
     
