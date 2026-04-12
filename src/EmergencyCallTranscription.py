@@ -363,19 +363,15 @@ if GRADIO_6:
 with gradio.Blocks(**BLOCK_KWARGS) as demo:
     
     gradio.Markdown("""
-    # 🚨 Notruf-Transkription & DSGVO-Anonymisierung
-    **Vollständig lokal · Kein Cloud-Zugriff · Kein CUDA erforderlich**
+    # Notruf-Transkription & Anonymisierung
 
-    Pipeline: `WAV (8 kHz Stereo)` → `WhisperX large-v3` → `Presidio`
-
-    Beide Kanäle werden **getrennt** transkribiert und zu einem echten Dialog zusammengeführt.
     `Kanal 0 (links) = Disponent` · `Kanal 1 (rechts) = Anrufer`
     """)
 
     with gradio.Row():
 
         # ── left column: input ────────────────────────────
-        with gradio.Column(scale=1, min_width=280):
+        with gradio.Column(scale = 1, min_width = 280):
 
             audio_input = gradio.Audio(
                 label = "Notruf-WAV hochladen (Stereo, 8 kHz)",
@@ -405,7 +401,7 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
             """)
 
         # ── right column: output ──────────────────────────
-        with gradio.Column(scale=2):
+        with gradio.Column(scale = 2):
 
             with gradio.Tab("📄 Rohtranskript (Dialog)"):
                 roh_out = gradio.Textbox(
