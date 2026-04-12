@@ -13,9 +13,9 @@ emergency call recordings.
 ```
 EmergencyCallTranscription/
 ├── src/
-│   └── EmergencyCallTranscription.py      # Gradio web UI
-├── requirements.txt       # all Python dependencies
-├── setup_und_start.sh     # setup & launch script
+│   └── EmergencyCallTranscription.py # Gradio web UI
+├── requirements.txt                  # all Python dependencies
+├── setup_und_start.sh                # setup & launch script
 └── README.md
 ```
 
