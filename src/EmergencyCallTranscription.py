@@ -350,18 +350,18 @@ BLOCK_KWARGS = {
 LAUNCH_KWARGS = {
     "server_name": "127.0.0.1",
     "server_port": 7860,
-    "share": False,       # must stay False for sensitive call data
+    "share": False,
     "show_error": True,
 }
 if GRADIO_6:
     BLOCK_KWARGS = {}
+    # FK-TODO: use BLOCK_KWARGS from definition
     LAUNCH_KWARGS.update(
-        theme=gradio.themes.Soft(),
-        css=".footer { font-size: 0.8em; color: #888; }",
-    )
+        theme = gradio.themes.Soft(),
+        css = ".footer { font-size: 0.8em; color: #888; }")
 
 with gradio.Blocks(**BLOCK_KWARGS) as demo:
-
+    
     gradio.Markdown("""
     # 🚨 Notruf-Transkription & DSGVO-Anonymisierung
     **Vollständig lokal · Kein Cloud-Zugriff · Kein CUDA erforderlich**
@@ -378,22 +378,20 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
         with gradio.Column(scale=1, min_width=280):
 
             audio_input = gradio.Audio(
-                label="Notruf-WAV hochladen (Stereo, 8 kHz)",
-                type="filepath",
-                sources=["upload"],
-            )
+                label = "Notruf-WAV hochladen (Stereo, 8 kHz)",
+                type = "filepath",
+                sources = ["upload"])
 
             anon_toggle = gradio.Checkbox(
-                value=True,
-                label="DSGVO-Anonymisierung (Presidio)",
-                info="Erkennt und ersetzt Namen, Orte, Telefonnummern etc.",
-            )
+                value = True,
+                label = "DSGVO-Anonymisierung (Presidio)",
+                info = "Erkennt und ersetzt Namen, Orte, Telefonnummern etc.")
 
             with gradio.Row():
-                start_btn = gradio.Button("▶  Verarbeiten", variant="primary")
+                start_btn = gradio.Button("▶  Verarbeiten", variant = "primary")
                 clear_btn = gradio.ClearButton(
-                    components=[audio_input],
-                    value="🗑  Reset",
+                    components =[audio_input],
+                    value = "🗑  Reset",
                 )
 
             gradio.Markdown("""
@@ -401,10 +399,6 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
             **Kanalzuweisung (fest):**
             - Kanal 0 links  → Disponent
             - Kanal 1 rechts → Anrufer
-
-            **Geschätzte Dauer (1:47 min Audio):**
-            - Transkription × 2: ~2–4 Min.
-            - Anonymisierung: ~5 Sek.
 
             **Export:** `~/notruf-protokolle/notruf_*.json`
             *(nur anonymisierter Dialog)*
@@ -415,29 +409,25 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
 
             with gradio.Tab("📄 Rohtranskript (Dialog)"):
                 roh_out = gradio.Textbox(
-                    label="Gesprächsprotokoll mit Zeitstempeln",
-                    lines=20,
-                    placeholder=(
+                    label = "Gesprächsprotokoll mit Zeitstempeln",
+                    lines = 20,
+                    placeholder = (
                         "[00.00s – 03.21s]  Anrufer:\n"
                         "    Notruf, hier ist ein Unfall auf der Hauptstraße!\n\n"
                         "[03.50s – 05.10s]  Disponent:\n"
                         "    Wo genau ist der Unfall?\n\n"
                         "[05.30s – 08.40s]  Anrufer:\n"
-                        "    Hauptstraße 12, vor dem Supermarkt ..."
-                    ),
-                    **COPY_BUTTON,
-                )
+                        "    Hauptstraße 12, vor dem Supermarkt ..."),
+                    **COPY_BUTTON)
                 gradio.Markdown(
-                    "⚠️  *Dieses Rohtranskript enthält personenbezogene Daten "
-                    "und wird nicht gespeichert.*",
-                    elem_classes=["footer"],
-                )
+                    "⚠️  *Dieses Rohtranskript enthält personenbezogene Daten und wird nicht gespeichert.*",
+                    elem_classes = ["footer"])
 
             with gradio.Tab("🔒 Anonymisiert (Dialog)"):
                 anon_out = gradio.Textbox(
-                    label="Anonymisiertes Gesprächsprotokoll",
-                    lines=20,
-                    placeholder=(
+                    label = "Anonymisiertes Gesprächsprotokoll",
+                    lines = 20,
+                    placeholder = (
                         "[00.00s – 03.21s]  Anrufer:\n"
                         "    Notruf, hier ist ein Unfall auf der <ORT>!\n\n"
                         "[03.50s – 05.10s]  Disponent:\n"
@@ -445,26 +435,24 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
                         "[05.30s – 08.40s]  Anrufer:\n"
                         "    <ORT>, vor dem Supermarkt ..."
                     ),
-                    **COPY_BUTTON,
-                )
+                    **COPY_BUTTON)
 
+            # FK-TODO: remove PII-Bericht?
             with gradio.Tab("ℹ️ PII-Bericht"):
                 pii_out = gradio.Textbox(
-                    label="Erkannte PII-Kategorien",
-                    lines=3,
-                    placeholder="PERSON, LOCATION, PHONE_NUMBER",
-                )
+                    label = "Erkannte PII-Kategorien",
+                    lines = 3,
+                    placeholder = "PERSON, LOCATION, PHONE_NUMBER")
                 gradio.Markdown("""
                 **Platzhalter-Legende:**
                 `<PERSON>` · `<ORT>` · `<TELEFON>` · `<DATUM>` · `<EMAIL>` · `<IBAN>` · `<KENNZEICHEN>`
                 """)
 
             status_out = gradio.Textbox(
-                label="Status",
-                lines=2,
-                interactive=False,
-                **NO_COPY_BUTTON,
-            )
+                label = "Status",
+                lines = 2,
+                interactive = False,
+                **NO_COPY_BUTTON)
 
     gradio.Markdown("""
     ---
@@ -482,10 +470,9 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
 
     # connect callback – channel selection removed, both channels always processed
     start_btn.click(
-        fn=process_call,
-        inputs=[audio_input, anon_toggle],
-        outputs=[roh_out, anon_out, pii_out, status_out],
-    )
+        fn = process_call,
+        inputs = [audio_input, anon_toggle],
+        outputs = [roh_out, anon_out, pii_out, status_out])
 
 # ─────────────────────────────────────────────────────────
 # ENTRY POINT
