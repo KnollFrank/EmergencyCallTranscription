@@ -4,7 +4,7 @@ torch
 torchaudio
 whisperx @ git+https://github.com/m-bain/whisperx.git
 
-gradio
+gradio>=6.0.0
 librosa
 soundfile
 

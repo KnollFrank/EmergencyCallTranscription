@@ -32,12 +32,6 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
-# Gradio compatibility helpers
-GRADIO_MAJOR   = int(gradio.__version__.split(".")[0])
-GRADIO_6       = GRADIO_MAJOR >= 6
-COPY_BUTTON    = {"buttons": ["copy"]} if GRADIO_6 else {"show_copy_button": True}
-NO_COPY_BUTTON = {"buttons": []}       if GRADIO_6 else {"show_copy_button": False}
-
 # ─────────────────────────────────────────────────────────
 # LOGGING
 # ─────────────────────────────────────────────────────────
@@ -341,27 +335,16 @@ def process_call(audio_path, anonymize_active):
 # ─────────────────────────────────────────────────────────
 # GRADIO UI
 # ─────────────────────────────────────────────────────────
-
-theme = gradio.themes.Soft()
-css = ".footer { font-size: 0.8em; color: #888; }"
-BLOCK_KWARGS = {
-    "title": "Notruf-Transkription",
-    "theme": theme,
-    "css": css,
-}
 LAUNCH_KWARGS = {
     "server_name": "127.0.0.1",
     "server_port": 7860,
     "share": False,
     "show_error": True,
+    "theme": gradio.themes.Soft(),
+    "css": ".footer { font-size: 0.8em; color: #888; }",
 }
-if GRADIO_6:
-    BLOCK_KWARGS = {}
-    LAUNCH_KWARGS.update(
-        theme = theme,
-        css = css)
 
-with gradio.Blocks(**BLOCK_KWARGS) as demo:
+with gradio.Blocks() as demo:
     
     gradio.Markdown("# Notruf-Transkription & Anonymisierung")
 
@@ -399,6 +382,8 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
 
         # ── right column: output ──────────────────────────
         with gradio.Column(scale = 2):
+
+            COPY_BUTTON    = { "buttons": ["copy"] }
 
             with gradio.Tab("📄 Rohtranskript (Dialog)"):
                 roh_out = gradio.Textbox(
@@ -444,8 +429,7 @@ with gradio.Blocks(**BLOCK_KWARGS) as demo:
             status_out = gradio.Textbox(
                 label = "Status",
                 lines = 2,
-                interactive = False,
-                **NO_COPY_BUTTON)
+                interactive = False)
 
     gradio.Markdown("""
     ---
