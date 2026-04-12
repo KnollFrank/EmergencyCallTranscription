@@ -362,11 +362,7 @@ if GRADIO_6:
 
 with gradio.Blocks(**BLOCK_KWARGS) as demo:
     
-    gradio.Markdown("""
-    # Notruf-Transkription & Anonymisierung
-
-    `Kanal 0 (links) = Disponent` · `Kanal 1 (rechts) = Anrufer`
-    """)
+    gradio.Markdown("# Notruf-Transkription & Anonymisierung")
 
     with gradio.Row():
 
