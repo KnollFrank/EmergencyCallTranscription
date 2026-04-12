@@ -339,6 +339,7 @@ with gradio.Blocks() as demo:
                 sources = ["upload"])
 
             with gradio.Row():
+                # FK-TODO: der Prozess soll starten, sobald eine Audiodatei hochgeladen wurde → Button entfernen und stattdessen audio_input.change() verwenden
                 start_btn = gradio.Button("▶  Verarbeiten", variant = "primary")
                 clear_btn = gradio.ClearButton(value = "🗑  Reset")
 
