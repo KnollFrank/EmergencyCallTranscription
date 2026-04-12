@@ -350,20 +350,18 @@ with gradio.Blocks() as demo:
             **Kanalzuweisung (fest):**
             - Kanal 0 links  → Disponent
             - Kanal 1 rechts → Anrufer
-
-            **Export:** `~/notruf-protokolle/notruf_*.json`
-            *(nur anonymisierter Dialog)*
             """)
 
         # ── right column: output ──────────────────────────
         with gradio.Column(scale = 2):
 
-            COPY_BUTTON    = { "buttons": ["copy"] }
+            COPY_BUTTON = { "buttons": ["copy"] }
+            lines = 10
 
             with gradio.Tab("📄 Rohtranskript (Dialog)"):
                 roh_out = gradio.Textbox(
                     label = "Gesprächsprotokoll mit Zeitstempeln",
-                    lines = 20,
+                    lines = lines,
                     placeholder = (
                         "[00.00s – 03.21s]  Anrufer:\n"
                         "    Notruf, hier ist ein Unfall auf der Hauptstraße!\n\n"
@@ -372,14 +370,11 @@ with gradio.Blocks() as demo:
                         "[05.30s – 08.40s]  Anrufer:\n"
                         "    Hauptstraße 12, vor dem Supermarkt ..."),
                     **COPY_BUTTON)
-                gradio.Markdown(
-                    "⚠️  *Dieses Rohtranskript enthält personenbezogene Daten und wird nicht gespeichert.*",
-                    elem_classes = ["footer"])
 
             with gradio.Tab("🔒 Anonymisiert (Dialog)"):
                 anon_out = gradio.Textbox(
                     label = "Anonymisiertes Gesprächsprotokoll",
-                    lines = 20,
+                    lines = lines,
                     placeholder = (
                         "[00.00s – 03.21s]  Anrufer:\n"
                         "    Notruf, hier ist ein Unfall auf der <ORT>!\n\n"
@@ -394,20 +389,6 @@ with gradio.Blocks() as demo:
                 label = "Status",
                 lines = 2,
                 interactive = False)
-
-    gradio.Markdown("""
-    ---
-    <div class="footer">
-    ⚠️ <strong>Datenschutzhinweis:</strong>
-    Alle Verarbeitungen laufen ausschließlich lokal auf diesem Rechner.
-    Keine Audio- oder Textdaten werden an externe Server übermittelt (<code>share=False</code>).
-    Der Rohtext (mit personenbezogenen Daten) wird nur im Arbeitsspeicher gehalten
-    und nach der Anonymisierung nicht gespeichert.
-    Nur das anonymisierte JSON-Protokoll wird in <code>~/notruf-protokolle/</code> abgelegt.
-    Für den Produktiveinsatz in Behörden ist eine
-    Datenschutz-Folgenabschätzung (DSFA, Art. 35 DSGVO) erforderlich.
-    </div>
-    """)
 
     # connect callback – channel selection removed, both channels always processed
     start_btn.click(
