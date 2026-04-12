@@ -1,48 +1,13 @@
-# ─────────────────────────────────────────────────────────
-# Emergency Call Transcription & GDPR Anonymisation
-# Ubuntu 24.04 LTS · Python 3.12 · CPU-only
-#
-# Install everything with a single command:
-#   pip install -r requirements.txt
-# ─────────────────────────────────────────────────────────
-
-# ── PyTorch CPU build ─────────────────────────────────────
-# The extra index ensures the CPU-only wheels are used,
-# preventing pip from downloading the 2 GB CUDA build.
 --extra-index-url https://download.pytorch.org/whl/cpu
+
 torch
 torchaudio
-
-# ── ASR ───────────────────────────────────────────────────
-# WhisperX is not on PyPI with a working ctranslate2 pin,
-# so we install directly from the GitHub main branch.
 whisperx @ git+https://github.com/m-bain/whisperx.git
-faster-whisper
-ctranslate2
-transformers
-huggingface-hub
 
-# ── Speaker diarisation (used internally by WhisperX) ─────
-pyannote.audio
-nltk
-pandas
-
-# ── Web UI ────────────────────────────────────────────────
 gradio
-
-# ── Audio preprocessing ───────────────────────────────────
 librosa
 soundfile
-audioread
 
-# ── PII anonymisation ─────────────────────────────────────
 presidio-analyzer
 presidio-anonymizer
-spacy>=3.7.0,<3.9.0     # WhisperX compatibility: 3.9+ not yet stable
-
-# ── numpy: 2.0 introduced breaking changes ────────────────
-# librosa and presidio both require <2.0
-numpy>=2.1.0
-
-scipy
-tqdm
+spacy>=3.7.0,<3.9.0
