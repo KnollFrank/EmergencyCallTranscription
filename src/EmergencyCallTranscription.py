@@ -290,10 +290,7 @@ def process_call(audio_path):
             "audio_duration_s":    duration_s,
             "model_asr":           "whisperx-large-v3",
             "anonymized":          True,
-            "pii_types":           sorted(all_types),
-            # FK-TODO: Segmente für Anrufer und Disponent sind uninteressant, also entfernen.
-            "segments_caller":     len(seg_caller),
-            "segments_dispatcher": len(seg_dispatcher),
+            "pii_types":           sorted(all_types)
         },
         # NOTE: no raw text field in the export
         "dialogue": [
@@ -312,9 +309,6 @@ def process_call(audio_path):
 
     status = (
         f"✅  Fertig | "
-        # FK-TODO: Segmente für Anrufer und Disponent sind uninteressant, also entfernen.
-        f"Anrufer: {len(seg_caller)} Segmente, "
-        f"Disponent: {len(seg_dispatcher)} Segmente | "
         f"PII: {pii_report} | "
         f"Export → {export_path}"
     )
