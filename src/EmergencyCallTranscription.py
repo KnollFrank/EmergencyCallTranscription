@@ -1,7 +1,6 @@
 """
 Emergency Call Transcription & GDPR Anonymisation
 ==================================================
-Hardware:  Dell XPS 9320 · Intel i7-1360P · 32 GB RAM · no CUDA
 Models:    WhisperX large-v3 (CPU/INT8) + Presidio
 Input:     Stereo WAV, 8 kHz
              Channel 0 (left)  = dispatcher
@@ -24,9 +23,9 @@ from datetime import datetime
 from pathlib import Path
 import numpy as np
 
-import gradio as gr
+import gradio
 import librosa
-import soundfile as sf
+import soundfile
 import whisperx
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
@@ -34,7 +33,7 @@ from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
 # Gradio compatibility helpers
-GRADIO_MAJOR   = int(gr.__version__.split(".")[0])
+GRADIO_MAJOR   = int(gradio.__version__.split(".")[0])
 GRADIO_6       = GRADIO_MAJOR >= 6
 COPY_BUTTON    = {"buttons": ["copy"]} if GRADIO_6 else {"show_copy_button": True}
 NO_COPY_BUTTON = {"buttons": []}       if GRADIO_6 else {"show_copy_button": False}
@@ -53,11 +52,11 @@ log = logging.getLogger(__name__)
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────
 DEVICE       = "cpu"
-COMPUTE_TYPE = "int8"   # required without CUDA
+COMPUTE_TYPE = "int8"
 LANGUAGE     = "de"
-BATCH_SIZE   = 4        # conservative value for CPU-only inference
-CPU_THREADS  = 12       # uses all P-cores of the i7-1360P
-BEAM_SIZE    = 3        # fewer candidates = faster decoding
+BATCH_SIZE   = 4
+CPU_THREADS  = 12
+BEAM_SIZE    = 5
 
 # Channel assignment (fixed per project spec):
 #   index 0 = left  = dispatcher
@@ -67,7 +66,7 @@ SPEAKERS = {
     1: "Anrufer",
 }
 
-# Output directory for anonymised JSON transcripts
+# Output directory for anonymized JSON transcripts
 EXPORT_DIR = Path.home() / "notruf-protokolle"
 EXPORT_DIR.mkdir(exist_ok=True)
 
@@ -99,14 +98,14 @@ log.info("WhisperX ready.")
 log.info("Loading Presidio + spaCy de_core_news_lg ...")
 nlp_config = {
     "nlp_engine_name": "spacy",
-    "models": [{"lang_code": "de", "model_name": "de_core_news_lg"}],
+    "models": [{"lang_code": LANGUAGE, "model_name": "de_core_news_lg"}],
 }
-nlp_engine     = NlpEngineProvider(nlp_configuration=nlp_config).create_engine()
-pii_analyzer   = AnalyzerEngine(nlp_engine=nlp_engine, supported_languages=["de"])
+pii_analyzer = AnalyzerEngine(
+    nlp_engine = NlpEngineProvider(nlp_configuration = nlp_config).create_engine(),
+    supported_languages = [LANGUAGE])
 pii_anonymizer = AnonymizerEngine()
 log.info("Presidio ready.")
 log.info("App ready → http://127.0.0.1:7860")
-
 
 # ─────────────────────────────────────────────────────────
 # HELPER FUNCTIONS
@@ -121,13 +120,14 @@ def extract_channel(audio_path: str, channel_idx: int) -> np.ndarray:
     """
     audio, sr = librosa.load(audio_path, sr=None, mono=False)
 
+    # FK-TODO: extract method
     if audio.ndim == 1:
-        mono = audio          # file is already mono
+        mono = audio
     else:
         mono = audio[channel_idx]
 
+    # FK-TODO: extract constant or parameter for 16000 in all places or rename method 
     return librosa.resample(mono.astype("float32"), orig_sr=sr, target_sr=16000)
-
 
 def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
     """
@@ -135,33 +135,32 @@ def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
     Returns a list of segment dicts:
         [{"sprecher": str, "start": float, "end": float, "text": str}]
     """
+    # FK-TODO: extract method
     # write audio to a temp file – WhisperX expects a file path
     with tempfile.NamedTemporaryFile(
-        suffix=".wav", delete=False, prefix="asr_in_"
+        suffix = ".wav",
+        delete = False,
+        prefix = "asr_in_"
     ) as f:
-        sf.write(f.name, audio_16k, 16000)
+        soundfile.write(f.name, audio_16k, 16000)
         path_tmp = f.name
 
     try:
+        # FK-TODO: extract method
         audio  = whisperx.load_audio(path_tmp)
-        result = asr_model.transcribe(audio, batch_size=BATCH_SIZE, language=LANGUAGE)
+        result = asr_model.transcribe(audio, batch_size = BATCH_SIZE, language = LANGUAGE)
         gc.collect()
 
         # word-level alignment for precise timestamps
-        try:
-            align_model, meta = whisperx.load_align_model(
-                language_code=LANGUAGE, device=DEVICE
-            )
-            result = whisperx.align(
-                result["segments"], align_model, meta, audio, DEVICE
-            )
-            gc.collect()
-        except Exception as e:
-            log.warning(f"Alignment skipped: {e}")
-
+        align_model, meta = whisperx.load_align_model(
+            language_code = LANGUAGE,
+            device = DEVICE)
+        result = whisperx.align(result["segments"], align_model, meta, audio, DEVICE)
+        gc.collect()
     finally:
         os.remove(path_tmp)
 
+    # FK-TODO: extract method
     segments = []
     for seg in result.get("segments", []):
         segments.append({
@@ -172,26 +171,23 @@ def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
         })
     return segments
 
-
-def anonymise_text(text: str) -> tuple[str, list[str]]:
+def anonymize_text(text: str) -> tuple[str, list[str]]:
     """
     Detect and replace PII in text using Presidio.
-    Returns (anonymised text, sorted list of detected entity types).
+    Returns (anonymized text, sorted list of detected entity types).
     The original text is never stored or logged.
     """
     found = pii_analyzer.analyze(
-        text=text,
-        language="de",
-        entities=list(PII_OPERATORS.keys()),
-    )
+        text = text,
+        language = LANGUAGE,
+        entities = list(PII_OPERATORS.keys()))
     anon = pii_anonymizer.anonymize(
-        text=text,
-        analyzer_results=found,
-        operators=PII_OPERATORS,
-    )
+        text = text,
+        analyzer_results = found,
+        operators = PII_OPERATORS)
+    # FK-TODO: extract method getTypes(found)
     types = sorted({e.entity_type for e in found})
     return anon.text, types
-
 
 def merge_dialogue(
     segments_caller: list[dict],
@@ -201,8 +197,7 @@ def merge_dialogue(
     Merge segments from both channels into a single chronological list,
     sorted by start time.
     """
-    return sorted(segments_caller + segments_dispatcher, key=lambda s: s["start"])
-
+    return sorted(segments_caller + segments_dispatcher, key = lambda s: s["start"])
 
 def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
     """
@@ -215,7 +210,7 @@ def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
         [03.50s – 05.80s]  Disponent:
             Where exactly? What house number?
     """
-    lines        = []
+    lines = []
     last_speaker = None
 
     for seg in segments:
@@ -232,12 +227,11 @@ def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
 
     return "\n".join(lines)
 
-
 # ─────────────────────────────────────────────────────────
 # MAIN CALLBACK (Gradio)
 # ─────────────────────────────────────────────────────────
 
-def process_call(audio_path, anonymise_active):
+def process_call(audio_path, anonymize_active):
     """
     Gradio generator callback.
     Transcribes BOTH channels separately and merges them into a dialogue.
@@ -279,7 +273,7 @@ def process_call(audio_path, anonymise_active):
     segments = merge_dialogue(seg_caller, seg_dispatcher)
     raw_text = dialogue_to_text(segments, anon=False)
 
-    if not anonymise_active:
+    if not anonymize_active:
         status = (
             f"✅  Fertig | Anrufer: {len(seg_caller)} Segmente, "
             f"Disponent: {len(seg_dispatcher)} Segmente | "
@@ -288,19 +282,19 @@ def process_call(audio_path, anonymise_active):
         yield raw_text, "(Anonymisierung nicht aktiviert)", "–", status
         return
 
-    # ── Step 5: anonymise every segment ──────────────────
+    # ── Step 5: anonymize every segment ──────────────────
     yield raw_text, "", "", "🔒  Presidio anonymisiert ..."
     all_types: set[str] = set()
 
     for seg in segments:
-        anon_text, types = anonymise_text(seg["text"])
+        anon_text, types = anonymize_text(seg["text"])
         seg["text_anon"] = anon_text
         all_types.update(types)
 
     anon_formatted = dialogue_to_text(segments, anon=True)
     pii_report     = ", ".join(sorted(all_types)) if all_types else "Keine PII erkannt"
 
-    # ── Step 6: export anonymised JSON (raw text excluded) ─
+    # ── Step 6: export anonymized JSON (raw text excluded) ─
     timestamp   = datetime.now().strftime("%Y%m%d_%H%M%S")
     export_path = EXPORT_DIR / f"notruf_{timestamp}.json"
 
@@ -309,7 +303,7 @@ def process_call(audio_path, anonymise_active):
             "timestamp":           datetime.now().isoformat(),
             "audio_duration_s":    duration_s,
             "model_asr":           "whisperx-large-v3",
-            "anonymised":          True,
+            "anonymized":          True,
             "pii_types":           sorted(all_types),
             "segments_caller":     len(seg_caller),
             "segments_dispatcher": len(seg_dispatcher),
@@ -345,7 +339,7 @@ def process_call(audio_path, anonymise_active):
 
 BLOCK_KWARGS = {
     "title": "Notruf-Transkription",
-    "theme": gr.themes.Soft(),
+    "theme": gradio.themes.Soft(),
     "css": ".footer { font-size: 0.8em; color: #888; }",
 }
 LAUNCH_KWARGS = {
@@ -357,13 +351,13 @@ LAUNCH_KWARGS = {
 if GRADIO_6:
     BLOCK_KWARGS = {}
     LAUNCH_KWARGS.update(
-        theme=gr.themes.Soft(),
+        theme=gradio.themes.Soft(),
         css=".footer { font-size: 0.8em; color: #888; }",
     )
 
-with gr.Blocks(**BLOCK_KWARGS) as demo:
+with gradio.Blocks(**BLOCK_KWARGS) as demo:
 
-    gr.Markdown("""
+    gradio.Markdown("""
     # 🚨 Notruf-Transkription & DSGVO-Anonymisierung
     **Vollständig lokal · Kein Cloud-Zugriff · Kein CUDA erforderlich**
 
@@ -373,31 +367,31 @@ with gr.Blocks(**BLOCK_KWARGS) as demo:
     `Kanal 0 (links) = Disponent` · `Kanal 1 (rechts) = Anrufer`
     """)
 
-    with gr.Row():
+    with gradio.Row():
 
         # ── left column: input ────────────────────────────
-        with gr.Column(scale=1, min_width=280):
+        with gradio.Column(scale=1, min_width=280):
 
-            audio_input = gr.Audio(
+            audio_input = gradio.Audio(
                 label="Notruf-WAV hochladen (Stereo, 8 kHz)",
                 type="filepath",
                 sources=["upload"],
             )
 
-            anon_toggle = gr.Checkbox(
+            anon_toggle = gradio.Checkbox(
                 value=True,
                 label="DSGVO-Anonymisierung (Presidio)",
                 info="Erkennt und ersetzt Namen, Orte, Telefonnummern etc.",
             )
 
-            with gr.Row():
-                start_btn = gr.Button("▶  Verarbeiten", variant="primary")
-                clear_btn = gr.ClearButton(
+            with gradio.Row():
+                start_btn = gradio.Button("▶  Verarbeiten", variant="primary")
+                clear_btn = gradio.ClearButton(
                     components=[audio_input],
                     value="🗑  Reset",
                 )
 
-            gr.Markdown("""
+            gradio.Markdown("""
             ---
             **Kanalzuweisung (fest):**
             - Kanal 0 links  → Disponent
@@ -412,10 +406,10 @@ with gr.Blocks(**BLOCK_KWARGS) as demo:
             """)
 
         # ── right column: output ──────────────────────────
-        with gr.Column(scale=2):
+        with gradio.Column(scale=2):
 
-            with gr.Tab("📄 Rohtranskript (Dialog)"):
-                roh_out = gr.Textbox(
+            with gradio.Tab("📄 Rohtranskript (Dialog)"):
+                roh_out = gradio.Textbox(
                     label="Gesprächsprotokoll mit Zeitstempeln",
                     lines=20,
                     placeholder=(
@@ -428,14 +422,14 @@ with gr.Blocks(**BLOCK_KWARGS) as demo:
                     ),
                     **COPY_BUTTON,
                 )
-                gr.Markdown(
+                gradio.Markdown(
                     "⚠️  *Dieses Rohtranskript enthält personenbezogene Daten "
                     "und wird nicht gespeichert.*",
                     elem_classes=["footer"],
                 )
 
-            with gr.Tab("🔒 Anonymisiert (Dialog)"):
-                anon_out = gr.Textbox(
+            with gradio.Tab("🔒 Anonymisiert (Dialog)"):
+                anon_out = gradio.Textbox(
                     label="Anonymisiertes Gesprächsprotokoll",
                     lines=20,
                     placeholder=(
@@ -449,25 +443,25 @@ with gr.Blocks(**BLOCK_KWARGS) as demo:
                     **COPY_BUTTON,
                 )
 
-            with gr.Tab("ℹ️ PII-Bericht"):
-                pii_out = gr.Textbox(
+            with gradio.Tab("ℹ️ PII-Bericht"):
+                pii_out = gradio.Textbox(
                     label="Erkannte PII-Kategorien",
                     lines=3,
                     placeholder="PERSON, LOCATION, PHONE_NUMBER",
                 )
-                gr.Markdown("""
+                gradio.Markdown("""
                 **Platzhalter-Legende:**
                 `<PERSON>` · `<ORT>` · `<TELEFON>` · `<DATUM>` · `<EMAIL>` · `<IBAN>` · `<KENNZEICHEN>`
                 """)
 
-            status_out = gr.Textbox(
+            status_out = gradio.Textbox(
                 label="Status",
                 lines=2,
                 interactive=False,
                 **NO_COPY_BUTTON,
             )
 
-    gr.Markdown("""
+    gradio.Markdown("""
     ---
     <div class="footer">
     ⚠️ <strong>Datenschutzhinweis:</strong>
