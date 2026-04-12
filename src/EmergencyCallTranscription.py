@@ -248,7 +248,7 @@ def process_call(audio_path):
     duration_s = round(len(audio_caller) / 16000)
 
     # ── Step 2: transcribe dispatcher channel ────────────
-    yield "", "", f"📝  WhisperX transkribiert Disponenten ({duration_s} s) – bitte warten ..."
+    yield "", "", f"📝  Transkribiere Disponenten ({duration_s} s) – bitte warten ..."
     try:
         seg_dispatcher = transcribe(audio_dispatcher, speaker="Disponent")
     except Exception as e:
@@ -256,7 +256,7 @@ def process_call(audio_path):
         return
 
     # ── Step 3: transcribe caller channel ────────────────
-    yield "", "", f"📝  WhisperX transkribiert Anrufer ({duration_s} s) – bitte warten ..."
+    yield "", "", f"📝  Transkribiere Anrufer ({duration_s} s) – bitte warten ..."
     try:
         seg_caller = transcribe(audio_caller, speaker="Anrufer")
     except Exception as e:
@@ -269,7 +269,7 @@ def process_call(audio_path):
     raw_text = dialogue_to_text(segments, anon = False)
 
     # ── Step 5: anonymize every segment ──────────────────
-    yield raw_text, "", "🔒  Presidio anonymisiert ..."
+    yield raw_text, "", "🔒  Anonymisiere ..."
 
     all_types: set[str] = set()
     for seg in segments:
@@ -303,15 +303,14 @@ def process_call(audio_path):
         ],
     }
 
+    # FK-TODO: remove export?
     with open(export_path, "w", encoding = "utf-8") as f:
         json.dump(export_data, f, ensure_ascii = False, indent=2)
 
     status = (
         f"✅  Fertig | "
-        f"Export → {export_path}"
-    )
+        f"Export → {export_path}")
     yield raw_text, anon_formatted, status
-
 
 # ─────────────────────────────────────────────────────────
 # GRADIO UI
@@ -341,9 +340,7 @@ with gradio.Blocks() as demo:
 
             with gradio.Row():
                 start_btn = gradio.Button("▶  Verarbeiten", variant = "primary")
-                clear_btn = gradio.ClearButton(
-                    components =[audio_input],
-                    value = "🗑  Reset")
+                clear_btn = gradio.ClearButton(value = "🗑  Reset")
 
             gradio.Markdown("""
             ---
@@ -390,11 +387,11 @@ with gradio.Blocks() as demo:
                 lines = 2,
                 interactive = False)
 
-    # connect callback – channel selection removed, both channels always processed
     start_btn.click(
         fn = process_call,
         inputs = [audio_input],
         outputs = [roh_out, anon_out, status_out])
+    clear_btn.add(components = [audio_input, roh_out, anon_out, status_out])
 
 # ─────────────────────────────────────────────────────────
 # ENTRY POINT
