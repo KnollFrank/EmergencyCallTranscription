@@ -82,10 +82,10 @@ log.info("Loading WhisperX large-v3 (CPU/INT8) ...")
 asr_model = whisperx.load_model(
     "large-v3",
     DEVICE,
-    compute_type=COMPUTE_TYPE,
-    language=LANGUAGE,
-    asr_options={"beam_size": BEAM_SIZE},
-    threads=CPU_THREADS,
+    compute_type = COMPUTE_TYPE,
+    language = LANGUAGE,
+    asr_options = {"beam_size": BEAM_SIZE},
+    threads = CPU_THREADS,
 )
 log.info("WhisperX ready.")
 
