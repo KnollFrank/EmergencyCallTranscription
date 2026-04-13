@@ -2,6 +2,7 @@
 
 torch
 torchaudio
+faster-whisper
 whisperx @ git+https://github.com/m-bain/whisperx.git
 
 gradio>=6.0.0

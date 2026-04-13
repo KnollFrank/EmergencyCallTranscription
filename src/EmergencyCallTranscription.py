@@ -26,11 +26,13 @@ import numpy as np
 import gradio
 import librosa
 import soundfile
-import whisperx
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
+
+# select the engine: "faster-whisper" (Zero-Bias) or "whisperx" (Alignment)
+ENGINE_TYPE = "whisperx"
 
 # ─────────────────────────────────────────────────────────
 # LOGGING
@@ -51,6 +53,7 @@ LANGUAGE     = "de"
 BATCH_SIZE   = 4
 CPU_THREADS  = 12
 BEAM_SIZE    = 5
+MODEL_SIZE   = "large-v3"
 
 # Channel assignment (fixed per project spec):
 #   index 0 = left  = dispatcher
@@ -78,16 +81,25 @@ PII_OPERATORS = {
 # ─────────────────────────────────────────────────────────
 # LOAD MODELS (once at startup)
 # ─────────────────────────────────────────────────────────
-log.info("Loading WhisperX large-v3 (CPU/INT8) ...")
-asr_model = whisperx.load_model(
-    "large-v3",
-    DEVICE,
-    compute_type = COMPUTE_TYPE,
-    language = LANGUAGE,
-    asr_options = {"beam_size": BEAM_SIZE},
-    threads = CPU_THREADS,
-)
-log.info("WhisperX ready.")
+log.info(f"Loading Engine: {ENGINE_TYPE} ({MODEL_SIZE if 'MODEL_SIZE' in locals() else 'large-v3'}) ...")
+
+if ENGINE_TYPE == "faster-whisper":
+    from faster_whisper import WhisperModel
+    asr_model = WhisperModel(
+        MODEL_SIZE,
+        device = DEVICE,
+        compute_type = COMPUTE_TYPE)
+else:
+    import whisperx
+    asr_model = whisperx.load_model(
+        MODEL_SIZE,
+        DEVICE,
+        compute_type = COMPUTE_TYPE,
+        language = LANGUAGE,
+        asr_options = {"beam_size": BEAM_SIZE},
+        threads = CPU_THREADS)
+
+log.info("ASR Model ready.")
 
 log.info("Loading Presidio + spaCy de_core_news_lg ...")
 nlp_config = {
@@ -104,11 +116,10 @@ log.info("App ready → http://127.0.0.1:7860")
 # ─────────────────────────────────────────────────────────
 # HELPER FUNCTIONS
 # ─────────────────────────────────────────────────────────
-
 def extract_channel(audio_path: str, channel_idx: int) -> np.ndarray:
     """
     Load a stereo WAV (8 kHz), extract the requested channel,
-    and upsample to 16 kHz (required by WhisperX).
+    and upsample to 16 kHz (required by Whisper).
     Returns a float32 mono numpy array at 16 kHz.
     channel_idx: 0 = left (dispatcher), 1 = right (caller)
     """
@@ -125,10 +136,26 @@ def extract_channel(audio_path: str, channel_idx: int) -> np.ndarray:
 
 def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
     """
-    Transcribe a 16 kHz mono signal with WhisperX.
-    Returns a list of segment dicts:
-        [{"speaker": str, "start": float, "end": float, "text": str}]
+    Transcribe a 16 kHz mono signal. 
+    Supports faster-whisper (Zero-Bias) and whisperx (Alignment).
     """
+    if ENGINE_TYPE == "faster-whisper":
+        segments_generator, _ = asr_model.transcribe(
+            audio_16k,
+            language = LANGUAGE,
+            vad_filter = False, 
+            word_timestamps = True,
+            beam_size = BEAM_SIZE
+        )
+        return [{
+            "speaker": speaker,
+            "start": round(seg.start, 2),
+            "end": round(seg.end, 2),
+            "text": seg.text.strip()
+        } for seg in segments_generator]
+
+    # --- WhisperX Logic ---
+    import whisperx
     # FK-TODO: extract method
     # write audio to a temp file – WhisperX expects a file path
     with tempfile.NamedTemporaryFile(
@@ -152,7 +179,8 @@ def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
         result = whisperx.align(result["segments"], align_model, meta, audio, DEVICE)
         gc.collect()
     finally:
-        os.remove(path_tmp)
+        if os.path.exists(path_tmp):
+            os.remove(path_tmp)
 
     # FK-TODO: extract method
     segments = []
@@ -236,8 +264,8 @@ def process_call(audio_path, progress = gradio.Progress()):
         yield "", "", "⚠️ Bitte zuerst eine WAV-Datei hochladen."
         return
 
-    progress(0.0, desc="🚀 Starte Verarbeitung...")
-    yield "", "", "🔊  Kanäle extrahieren (8 kHz → 16 kHz) ..."
+    progress(0.1, desc="🚀 Starte Verarbeitung...")
+    yield "", "", f"🔊  Isoliere Kanäle (Engine: {ENGINE_TYPE}) ..."
     try:
         audio_dispatcher = extract_channel(audio_path, channel_idx=0)
         audio_caller = extract_channel(audio_path, channel_idx=1)
@@ -266,19 +294,19 @@ def process_call(audio_path, progress = gradio.Progress()):
 
     anon_formatted = dialogue_to_text(segments, anon=True)
 
-    # export anonymized JSON (raw text excluded) ─
+    # export anonymized JSON ─
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    export_path = EXPORT_DIR / f"notruf_{timestamp}.json"
+    export_path = EXPORT_DIR / f"notruf_{timestamp}_{ENGINE_TYPE}.json"
 
     export_data = {
         "meta": {
             "timestamp":           datetime.now().isoformat(),
             "audio_duration_s":    duration_s,
-            "model_asr":           "whisperx-large-v3",
+            "engine":              ENGINE_TYPE,
+            "model_asr":           "large-v3",
             "anonymized":          True,
             "pii_types":           sorted(all_types)
         },
-        # NOTE: no raw text field in the export
         "dialogue": [
             {
                 "speaker": seg["speaker"],
@@ -296,8 +324,8 @@ def process_call(audio_path, progress = gradio.Progress()):
 
     progress(1.0, desc = "✅ Abgeschlossen")
     status = (
-        f"✅  Fertig | "
-        f"Export → {export_path}")
+        f"✅  Fertig ({ENGINE_TYPE}) | "
+        f"Export → {export_path.name}")
     yield raw_text, anon_formatted, status
 
 # ─────────────────────────────────────────────────────────
@@ -309,14 +337,14 @@ LAUNCH_KWARGS = {
     "share": False,
     "show_error": True,
     "theme": gradio.themes.Soft(),
-    "css": ".footer { font-size: 0.8em; color: #888; }",
+    "css": ".footer { font-size: 0.8em; color: #888; } #status-box { border: 1px solid #ddd; }",
 }
 
 with gradio.Blocks(
     title = "Notruf-Transkription",
     theme = gradio.themes.Soft()
 ) as demo:
-    gradio.Markdown("# Notruf-Transkription & Anonymisierung")
+    gradio.Markdown(f"# Notruf-Transkription & Anonymisierung (Engine: `{ENGINE_TYPE}`)")
     with gradio.Row():
         with gradio.Column(scale = 1, min_width = 280):
             audio_input = gradio.Audio(
