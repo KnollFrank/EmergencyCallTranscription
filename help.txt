@@ -1,0 +1,11 @@
+http://127.0.0.1:7860/
+
+Teste:
+- https://otranscribe.com/
+- f4transkript
+- VOSK
+- Buzz
+- Whisper-GUI
+- sudo apt install subtitlecomposer
+- sudo apt install kdenlive
+
