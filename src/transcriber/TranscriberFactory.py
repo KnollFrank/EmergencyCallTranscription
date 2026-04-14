@@ -1,6 +1,6 @@
-from Engine import Engine
-from FasterWhisperTranscriber import FasterWhisperTranscriber
-from WhisperXTranscriber import WhisperXTranscriber
+from .Engine import Engine
+from .FasterWhisperTranscriber import FasterWhisperTranscriber
+from .WhisperXTranscriber import WhisperXTranscriber
 
 class TranscriberFactory:
 

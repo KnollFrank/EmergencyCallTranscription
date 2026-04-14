@@ -27,8 +27,8 @@ from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
-from Engine import Engine
-from TranscriberFactory import TranscriberFactory
+from transcriber.Engine import Engine
+from transcriber.TranscriberFactory import TranscriberFactory
 
 ENGINE: Engine = Engine.FASTER_WHISPER
 
