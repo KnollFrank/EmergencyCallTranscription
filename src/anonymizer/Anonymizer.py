@@ -20,7 +20,8 @@ class Anonymizer:
             text = text,
             analyzer_results = found,
             operators = self.operators)
-        # FK-TODO: extract method getTypes(found)
-        types = sorted({e.entity_type for e in found})
-        return anon.text, types
-
+        return anon.text, Anonymizer._getTypes(found)
+    
+    @staticmethod
+    def _getTypes(found):
+        return sorted({e.entity_type for e in found})
