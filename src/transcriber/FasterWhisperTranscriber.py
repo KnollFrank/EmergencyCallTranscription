@@ -11,7 +11,7 @@ class FasterWhisperTranscriber:
         self.language = language
         self.beam_size = beam_size
 
-    def transcribe(self, audio_16k: np.ndarray, speaker: str):
+    def transcribe(self, audio_16k: np.ndarray, speaker: str) -> list[dict]:
         segments, _ = self.model.transcribe(
             audio_16k,
             language = self.language,

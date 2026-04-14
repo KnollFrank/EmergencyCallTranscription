@@ -20,7 +20,7 @@ class WhisperXTranscriber:
         self.batch_size = batch_size
 
     # FK-TODO: refactor
-    def transcribe(self, audio_16k: np.ndarray, speaker: str):
+    def transcribe(self, audio_16k: np.ndarray, speaker: str) -> list[dict]:
         # write audio to a temp file – WhisperX expects a file path
         with tempfile.NamedTemporaryFile(
             suffix = ".wav",
