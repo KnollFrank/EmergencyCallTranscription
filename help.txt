@@ -9,3 +9,16 @@ Teste:
 - sudo apt install subtitlecomposer
 - sudo apt install kdenlive
 
+faster-whisper:
+- EmergencyCall_StreetNoise_8kHz.wav:
+  Fehler: - "Warn 3, Herr Kraus" statt "Warndreieck raus."
+          - "Okay, ja. Ja." statt "Okay... ja."
+- EmergencyCall-FrankKnoll_8kHz.wav:
+  Fehler: - "0177 29876543" statt "0172 9876543"
+          - "Okay, ja. Ja." statt "Okay... ja."
+
+whisperx:
+- EmergencyCall_StreetNoise_8kHz.wav:
+  Fehler: "Warn Dreier Graus." statt "Warndreieck raus."
+- EmergencyCall-FrankKnoll_8kHz.wav:
+  Fehler: - "Lars Schulze. 0172 9876543." fehlt vollständig
