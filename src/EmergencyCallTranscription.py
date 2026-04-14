@@ -276,7 +276,8 @@ with gradio.Blocks(
             audio_input = gradio.Audio(
                 label = "Notruf-WAV hochladen",
                 type = "filepath",
-                sources = ["upload"])            
+                sources = ["upload"])
+            # FK-TODO: die Kanalzuweisung im UI und im Code einstellbar machen
             gradio.Markdown("""
             ---
             **Kanalzuweisung (fest):**
