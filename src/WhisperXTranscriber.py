@@ -5,7 +5,7 @@ import tempfile
 import os
 import gc
 
-class WhisperXTranscriptionModel:
+class WhisperXTranscriber:
 
     def __init__(self, model_size, device, compute_type, language, batch_size, beam_size, threads):
         self.model = whisperx.load_model(

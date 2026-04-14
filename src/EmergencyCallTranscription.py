@@ -28,7 +28,7 @@ from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
 from Engine import Engine
-from TranscriptionModelFactory import TranscriptionModelFactory
+from TranscriberFactory import TranscriberFactory
 
 ENGINE: Engine = Engine.FASTER_WHISPER
 
@@ -78,7 +78,7 @@ PII_OPERATORS = {
 # ─────────────────────────────────────────────────────────
 log.info(f"Loading Engine: {ENGINE} ({MODEL_SIZE if 'MODEL_SIZE' in locals() else 'large-v3'}) ...")
 
-transcriptionModel = TranscriptionModelFactory.createTranscriptionModel(
+transcriptionModel = TranscriberFactory.createTranscriber(
     engine = ENGINE,
     model_size = MODEL_SIZE,
     language = LANGUAGE,

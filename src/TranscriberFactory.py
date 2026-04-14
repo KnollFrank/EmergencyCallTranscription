@@ -1,25 +1,25 @@
 from Engine import Engine
-from FasterWhisperTranscriptionModel import FasterWhisperTranscriptionModel
-from WhisperXTranscriptionModel import WhisperXTranscriptionModel
+from FasterWhisperTranscriber import FasterWhisperTranscriber
+from WhisperXTranscriber import WhisperXTranscriber
 
-class TranscriptionModelFactory:
+class TranscriberFactory:
 
     @staticmethod
-    def createTranscriptionModel(engine: Engine, model_size, language, batch_size):
+    def createTranscriber(engine: Engine, model_size, language, batch_size):
         language = "de"
         device = "cpu"
         compute_type = "int8"
         beam_size = 5
         match engine:
             case Engine.FASTER_WHISPER:
-                return FasterWhisperTranscriptionModel(
+                return FasterWhisperTranscriber(
                     model_size = model_size,
                     device = device,
                     compute_type = compute_type,
                     language = language,
                     beam_size = beam_size)
             case Engine.WHISPERX:
-                return WhisperXTranscriptionModel(
+                return WhisperXTranscriber(
                     model_size = model_size,
                     device = device,
                     compute_type = compute_type,
