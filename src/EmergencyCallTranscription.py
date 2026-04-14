@@ -14,25 +14,23 @@ Privacy:   All processing runs locally, no cloud access,
            raw transcript is never written to disk.
 """
 
-import gc
 import json
 import logging
-import os
-import tempfile
 from datetime import datetime
 from pathlib import Path
 import numpy as np
 
 import gradio
 import librosa
-import soundfile
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
 
-# select the engine: "faster-whisper" (Zero-Bias) or "whisperx" (Alignment)
-ENGINE_TYPE = "whisperx"
+from Engine import Engine
+from TranscriptionModelFactory import TranscriptionModelFactory
+
+ENGINE: Engine = Engine.FASTER_WHISPER
 
 # ─────────────────────────────────────────────────────────
 # LOGGING
@@ -47,11 +45,8 @@ log = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────
-DEVICE       = "cpu"
-COMPUTE_TYPE = "int8"
 LANGUAGE     = "de"
 BATCH_SIZE   = 4
-CPU_THREADS  = 12
 BEAM_SIZE    = 5
 MODEL_SIZE   = "large-v3"
 
@@ -81,23 +76,9 @@ PII_OPERATORS = {
 # ─────────────────────────────────────────────────────────
 # LOAD MODELS (once at startup)
 # ─────────────────────────────────────────────────────────
-log.info(f"Loading Engine: {ENGINE_TYPE} ({MODEL_SIZE if 'MODEL_SIZE' in locals() else 'large-v3'}) ...")
+log.info(f"Loading Engine: {ENGINE} ({MODEL_SIZE if 'MODEL_SIZE' in locals() else 'large-v3'}) ...")
 
-if ENGINE_TYPE == "faster-whisper":
-    from faster_whisper import WhisperModel
-    asr_model = WhisperModel(
-        MODEL_SIZE,
-        device = DEVICE,
-        compute_type = COMPUTE_TYPE)
-else:
-    import whisperx
-    asr_model = whisperx.load_model(
-        MODEL_SIZE,
-        DEVICE,
-        compute_type = COMPUTE_TYPE,
-        language = LANGUAGE,
-        asr_options = {"beam_size": BEAM_SIZE},
-        threads = CPU_THREADS)
+transcriptionModel = TranscriptionModelFactory.createTranscriptionModel(ENGINE, model_size = MODEL_SIZE, language = LANGUAGE, batch_size = BATCH_SIZE)
 
 log.info("ASR Model ready.")
 
@@ -134,65 +115,6 @@ def extract_channel(audio_path: str, channel_idx: int) -> np.ndarray:
     # FK-TODO: extract constant or parameter for 16000 in all places or rename method 
     return librosa.resample(mono.astype("float32"), orig_sr=sr, target_sr=16000)
 
-def transcribe(audio_16k: np.ndarray, speaker: str) -> list[dict]:
-    """
-    Transcribe a 16 kHz mono signal. 
-    Supports faster-whisper (Zero-Bias) and whisperx (Alignment).
-    """
-    if ENGINE_TYPE == "faster-whisper":
-        segments_generator, _ = asr_model.transcribe(
-            audio_16k,
-            language = LANGUAGE,
-            vad_filter = False, 
-            word_timestamps = True,
-            beam_size = BEAM_SIZE
-        )
-        return [{
-            "speaker": speaker,
-            "start": round(seg.start, 2),
-            "end": round(seg.end, 2),
-            "text": seg.text.strip()
-        } for seg in segments_generator]
-
-    # --- WhisperX Logic ---
-    import whisperx
-    # FK-TODO: extract method
-    # write audio to a temp file – WhisperX expects a file path
-    with tempfile.NamedTemporaryFile(
-        suffix = ".wav",
-        delete = False,
-        prefix = "asr_in_"
-    ) as f:
-        soundfile.write(f.name, audio_16k, 16000)
-        path_tmp = f.name
-
-    try:
-        # FK-TODO: extract method
-        audio  = whisperx.load_audio(path_tmp)
-        result = asr_model.transcribe(audio, batch_size = BATCH_SIZE, language = LANGUAGE)
-        gc.collect()
-
-        # word-level alignment for precise timestamps
-        align_model, meta = whisperx.load_align_model(
-            language_code = LANGUAGE,
-            device = DEVICE)
-        result = whisperx.align(result["segments"], align_model, meta, audio, DEVICE)
-        gc.collect()
-    finally:
-        if os.path.exists(path_tmp):
-            os.remove(path_tmp)
-
-    # FK-TODO: extract method
-    segments = []
-    for seg in result.get("segments", []):
-        segments.append({
-            "speaker": speaker,
-            # FK-TODO: extract method for rounding timestamps
-            "start": round(float(seg["start"]), 2),
-            "end": round(float(seg["end"]), 2),
-            "text": seg["text"].strip(),
-        })
-    return segments
 
 def anonymize_text(text: str) -> tuple[str, list[str]]:
     """
@@ -265,7 +187,7 @@ def process_call(audio_path, progress = gradio.Progress()):
         return
 
     progress(0.1, desc="🚀 Starte Verarbeitung...")
-    yield "", "", f"🔊  Isoliere Kanäle (Engine: {ENGINE_TYPE}) ..."
+    yield "", "", f"🔊  Isoliere Kanäle (Engine: {ENGINE}) ..."
     try:
         audio_dispatcher = extract_channel(audio_path, channel_idx=0)
         audio_caller = extract_channel(audio_path, channel_idx=1)
@@ -276,10 +198,10 @@ def process_call(audio_path, progress = gradio.Progress()):
     duration_s = round(len(audio_caller) / 16000)
 
     progress(0.2, desc = f"📝 Transkribiere Disponent...")
-    seg_dispatcher = transcribe(audio_dispatcher, speaker = "Disponent")
+    seg_dispatcher = transcriptionModel.transcribe(audio_dispatcher, speaker = "Disponent")
 
     progress(0.5, desc=f"📝 Transkribiere Anrufer...")
-    seg_caller = transcribe(audio_caller, speaker = "Anrufer")
+    seg_caller = transcriptionModel.transcribe(audio_caller, speaker = "Anrufer")
 
     progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
     segments = merge_dialogue(seg_dispatcher, seg_caller)
@@ -296,13 +218,13 @@ def process_call(audio_path, progress = gradio.Progress()):
 
     # export anonymized JSON ─
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    export_path = EXPORT_DIR / f"notruf_{timestamp}_{ENGINE_TYPE}.json"
+    export_path = EXPORT_DIR / f"notruf_{timestamp}_{ENGINE}.json"
 
     export_data = {
         "meta": {
             "timestamp":           datetime.now().isoformat(),
             "audio_duration_s":    duration_s,
-            "engine":              ENGINE_TYPE,
+            "engine":              ENGINE,
             "model_asr":           "large-v3",
             "anonymized":          True,
             "pii_types":           sorted(all_types)
@@ -324,7 +246,7 @@ def process_call(audio_path, progress = gradio.Progress()):
 
     progress(1.0, desc = "✅ Abgeschlossen")
     status = (
-        f"✅  Fertig ({ENGINE_TYPE}) | "
+        f"✅  Fertig ({ENGINE}) | "
         f"Export → {export_path.name}")
     yield raw_text, anon_formatted, status
 
@@ -344,7 +266,7 @@ with gradio.Blocks(
     title = "Notruf-Transkription",
     theme = gradio.themes.Soft()
 ) as demo:
-    gradio.Markdown(f"# Notruf-Transkription & Anonymisierung (Engine: `{ENGINE_TYPE}`)")
+    gradio.Markdown(f"# Notruf-Transkription & Anonymisierung (Engine: `{ENGINE}`)")
     with gradio.Row():
         with gradio.Column(scale = 1, min_width = 280):
             audio_input = gradio.Audio(
