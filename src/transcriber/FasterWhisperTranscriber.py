@@ -12,16 +12,19 @@ class FasterWhisperTranscriber:
         self.beam_size = beam_size
 
     def transcribe(self, audio_16k: np.ndarray, speaker: str):
-        segments_generator, _ = self.model.transcribe(
+        segments, _ = self.model.transcribe(
             audio_16k,
             language = self.language,
             vad_filter = False, 
             word_timestamps = True,
             beam_size = self.beam_size)
-        # FK-TODO: extract method
-        return [{
+        return [FasterWhisperTranscriber._convertSegment(segment, speaker) for segment in segments]
+
+    @staticmethod
+    def _convertSegment(segment, speaker):
+        return {
             "speaker": speaker,
             "start": round(segment.start, 2),
             "end": round(segment.end, 2),
             "text": segment.text.strip()
-        } for segment in segments_generator]
+        }

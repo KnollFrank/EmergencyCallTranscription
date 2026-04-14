@@ -45,11 +45,14 @@ class WhisperXTranscriber:
         finally:
             if os.path.exists(path_tmp):
                 os.remove(path_tmp)
-        # FK-TODO: refactor
-        return [{
-                "speaker": speaker,
-                # FK-TODO: extract method for rounding timestamps
-                "start": round(float(segment["start"]), 2),
-                "end": round(float(segment["end"]), 2),
-                "text": segment["text"].strip(),
-            } for segment in result.get("segments", [])]
+        return [WhisperXTranscriber._convertSegment(segment, speaker) for segment in result.get("segments", [])]
+    
+    @staticmethod
+    def _convertSegment(segment, speaker):
+        return {
+            "speaker": speaker,
+            # FK-TODO: extract method for rounding timestamps
+            "start": round(float(segment["start"]), 2),
+            "end": round(float(segment["end"]), 2),
+            "text": segment["text"].strip()
+        }
