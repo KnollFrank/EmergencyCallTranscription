@@ -46,13 +46,13 @@ class WhisperXTranscriber:
                 os.remove(path_tmp)
         # FK-TODO: extract method
         segments = []
-        for seg in result.get("segments", []):
+        for segment in result.get("segments", []):
             segments.append({
                 "speaker": speaker,
                 # FK-TODO: extract method for rounding timestamps
-                "start": round(float(seg["start"]), 2),
-                "end": round(float(seg["end"]), 2),
-                "text": seg["text"].strip(),
+                "start": round(float(segment["start"]), 2),
+                "end": round(float(segment["end"]), 2),
+                "text": segment["text"].strip(),
             })
         return segments
 
