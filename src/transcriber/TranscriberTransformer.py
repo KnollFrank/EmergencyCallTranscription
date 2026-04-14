@@ -1,5 +1,6 @@
 import numpy as np
 
+# FK-TODO: rename class
 class TranscriberTransformer:
 
     def __init__(self, transcriber):
@@ -17,6 +18,7 @@ class TranscriberTransformer:
     @staticmethod
     def _transformSegment(segment, speaker: str):
         return {
+            # FK-TODO: add speaker after calling _transformSegments?
             "speaker": speaker,
             # FK-TODO: extract method for rounding timestamps
             "start": round(segment.start, 2),
