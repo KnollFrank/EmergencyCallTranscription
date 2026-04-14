@@ -254,6 +254,7 @@ with gradio.Blocks(
             COPY_BUTTON = { "buttons": ["copy"] }
             lines = 20
             with gradio.Tab("📄 Gesprächsprotokoll"):
+                # FK-TODO: das Gesprächsprotokoll soll editierbar sein und die Anonymisierung über einen Button gestartet werden.
                 roh_out = gradio.Textbox(
                     label = "Gesprächsprotokoll",
                     lines = lines,
