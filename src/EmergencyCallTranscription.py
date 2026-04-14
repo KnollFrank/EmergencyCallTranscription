@@ -24,10 +24,9 @@ import gradio
 import librosa
 
 from transcriber.Engine import Engine
+from transcriber.Model import Model
 from transcriber.TranscriberFactory import TranscriberFactory
 from anonymizer.AnonymizerFactory import AnonymizerFactory
-
-ENGINE: Engine = Engine.FASTER_WHISPER
 
 # ─────────────────────────────────────────────────────────
 # LOGGING
@@ -45,8 +44,8 @@ log = logging.getLogger(__name__)
 LANGUAGE = "de"
 BATCH_SIZE = 4
 BEAM_SIZE = 5
-# FK-TODO: add enum for MODEL_SIZE
-MODEL_SIZE = "large-v3"
+ENGINE: Engine = Engine.FASTER_WHISPER
+MODEL: Model = Model.largeV3
 
 # Channel assignment (fixed per project spec):
 #   index 0 = left  = dispatcher
@@ -63,11 +62,11 @@ EXPORT_DIR.mkdir(exist_ok=True)
 # ─────────────────────────────────────────────────────────
 # LOAD MODELS (once at startup)
 # ─────────────────────────────────────────────────────────
-log.info(f"Loading Engine: {ENGINE} ({MODEL_SIZE if 'MODEL_SIZE' in locals() else 'large-v3'}) ...")
+log.info(f"Loading Engine: {ENGINE} ({MODEL}) ...")
 
 transcriber = TranscriberFactory.createTranscriber(
     engine = ENGINE,
-    model_size = MODEL_SIZE,
+    model_size = MODEL,
     language = LANGUAGE,
     batch_size = BATCH_SIZE)
 

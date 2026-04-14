@@ -4,10 +4,11 @@ import soundfile
 import tempfile
 import os
 import gc
+from .Model import Model
 
 class WhisperXTranscriber:
 
-    def __init__(self, model_size, device, compute_type, language, batch_size, beam_size, threads):
+    def __init__(self, model_size: Model, device, compute_type, language, batch_size, beam_size, threads):
         self.model = whisperx.load_model(
             model_size,
             device,

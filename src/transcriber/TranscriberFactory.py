@@ -1,11 +1,12 @@
 from .Engine import Engine
+from .Model import Model
 from .FasterWhisperTranscriber import FasterWhisperTranscriber
 from .WhisperXTranscriber import WhisperXTranscriber
 
 class TranscriberFactory:
     
     @staticmethod
-    def createTranscriber(engine: Engine, model_size, language, batch_size):
+    def createTranscriber(engine: Engine, model_size: Model, language, batch_size):
         language = "de"
         device = "cpu"
         compute_type = "int8"
