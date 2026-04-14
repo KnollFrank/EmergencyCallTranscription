@@ -179,7 +179,7 @@ def process_call(audio_path, progress = gradio.Progress()):
         seg["text_anon"] = anon_text
         all_types.update(types)
 
-    anon_formatted = dialogue_to_text(segments, anon=True)
+    anon_formatted = dialogue_to_text(segments, anon = True)
 
     # export anonymized JSON ─
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
