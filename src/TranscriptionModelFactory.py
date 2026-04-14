@@ -1,5 +1,5 @@
 from Engine import Engine
-from WhisperTranscriptionModel import WhisperTranscriptionModel
+from FasterWhisperTranscriptionModel import FasterWhisperTranscriptionModel
 from WhisperXTranscriptionModel import WhisperXTranscriptionModel
 
 class TranscriptionModelFactory:
@@ -12,7 +12,7 @@ class TranscriptionModelFactory:
         beam_size = 5
         match engine:
             case Engine.FASTER_WHISPER:
-                return WhisperTranscriptionModel(
+                return FasterWhisperTranscriptionModel(
                     model_size = model_size,
                     device = device,
                     compute_type = compute_type,

@@ -78,7 +78,11 @@ PII_OPERATORS = {
 # ─────────────────────────────────────────────────────────
 log.info(f"Loading Engine: {ENGINE} ({MODEL_SIZE if 'MODEL_SIZE' in locals() else 'large-v3'}) ...")
 
-transcriptionModel = TranscriptionModelFactory.createTranscriptionModel(ENGINE, model_size = MODEL_SIZE, language = LANGUAGE, batch_size = BATCH_SIZE)
+transcriptionModel = TranscriptionModelFactory.createTranscriptionModel(
+    engine = ENGINE,
+    model_size = MODEL_SIZE,
+    language = LANGUAGE,
+    batch_size = BATCH_SIZE)
 
 log.info("ASR Model ready.")
 
