@@ -78,7 +78,7 @@ PII_OPERATORS = {
 # ─────────────────────────────────────────────────────────
 log.info(f"Loading Engine: {ENGINE} ({MODEL_SIZE if 'MODEL_SIZE' in locals() else 'large-v3'}) ...")
 
-transcriptionModel = TranscriberFactory.createTranscriber(
+transcriber = TranscriberFactory.createTranscriber(
     engine = ENGINE,
     model_size = MODEL_SIZE,
     language = LANGUAGE,
@@ -202,10 +202,10 @@ def process_call(audio_path, progress = gradio.Progress()):
     duration_s = round(len(audio_caller) / 16000)
 
     progress(0.2, desc = f"📝 Transkribiere Disponent...")
-    seg_dispatcher = transcriptionModel.transcribe(audio_dispatcher, speaker = "Disponent")
+    seg_dispatcher = transcriber.transcribe(audio_dispatcher, speaker = "Disponent")
 
     progress(0.5, desc=f"📝 Transkribiere Anrufer...")
-    seg_caller = transcriptionModel.transcribe(audio_caller, speaker = "Anrufer")
+    seg_caller = transcriber.transcribe(audio_caller, speaker = "Anrufer")
 
     progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
     segments = merge_dialogue(seg_dispatcher, seg_caller)
