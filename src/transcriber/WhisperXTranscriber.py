@@ -19,6 +19,7 @@ class WhisperXTranscriber:
         self.language = language
         self.batch_size = batch_size
 
+    # FK-TODO: refactor
     def transcribe(self, audio_16k: np.ndarray, speaker: str):
         # write audio to a temp file – WhisperX expects a file path
         with tempfile.NamedTemporaryFile(
@@ -44,4 +45,11 @@ class WhisperXTranscriber:
         finally:
             if os.path.exists(path_tmp):
                 os.remove(path_tmp)
-        return result.get("segments", [])
+        # FK-TODO: refactor
+        return [{
+                "speaker": speaker,
+                # FK-TODO: extract method for rounding timestamps
+                "start": round(float(segment["start"]), 2),
+                "end": round(float(segment["end"]), 2),
+                "text": segment["text"].strip(),
+            } for segment in result.get("segments", [])]

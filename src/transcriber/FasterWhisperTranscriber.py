@@ -18,4 +18,10 @@ class FasterWhisperTranscriber:
             vad_filter = False, 
             word_timestamps = True,
             beam_size = self.beam_size)
-        return segments_generator
+        # FK-TODO: extract method
+        return [{
+            "speaker": speaker,
+            "start": round(segment.start, 2),
+            "end": round(segment.end, 2),
+            "text": segment.text.strip()
+        } for segment in segments_generator]

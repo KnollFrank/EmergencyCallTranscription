@@ -42,11 +42,11 @@ log = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────
 # CONFIGURATION
 # ─────────────────────────────────────────────────────────
-LANGUAGE     = "de"
-BATCH_SIZE   = 4
-BEAM_SIZE    = 5
+LANGUAGE = "de"
+BATCH_SIZE = 4
+BEAM_SIZE = 5
 # FK-TODO: add enum for MODEL_SIZE
-MODEL_SIZE   = "large-v3"
+MODEL_SIZE = "large-v3"
 
 # Channel assignment (fixed per project spec):
 #   index 0 = left  = dispatcher
