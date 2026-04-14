@@ -22,13 +22,10 @@ import numpy as np
 
 import gradio
 import librosa
-from presidio_analyzer import AnalyzerEngine
-from presidio_analyzer.nlp_engine import NlpEngineProvider
-from presidio_anonymizer import AnonymizerEngine
-from presidio_anonymizer.entities import OperatorConfig
 
 from transcriber.Engine import Engine
 from transcriber.TranscriberFactory import TranscriberFactory
+from anonymizer.AnonymizerFactory import AnonymizerFactory
 
 ENGINE: Engine = Engine.FASTER_WHISPER
 
@@ -62,17 +59,6 @@ SPEAKERS = {
 EXPORT_DIR = Path.home() / "notruf-protokolle"
 EXPORT_DIR.mkdir(exist_ok=True)
 
-# PII replacement rules for Presidio
-PII_OPERATORS = {
-    "PERSON":        OperatorConfig("replace", {"new_value": "<PERSON>"}),
-    "LOCATION":      OperatorConfig("replace", {"new_value": "<ORT>"}),
-    "PHONE_NUMBER":  OperatorConfig("replace", {"new_value": "<TELEFON>"}),
-    "DATE_TIME":     OperatorConfig("replace", {"new_value": "<DATUM>"}),
-    "EMAIL_ADDRESS": OperatorConfig("replace", {"new_value": "<EMAIL>"}),
-    "IBAN_CODE":     OperatorConfig("replace", {"new_value": "<IBAN>"}),
-    "NRP":           OperatorConfig("replace", {"new_value": "<KENNZEICHEN>"}),
-}
-
 # ─────────────────────────────────────────────────────────
 # LOAD MODELS (once at startup)
 # ─────────────────────────────────────────────────────────
@@ -87,14 +73,7 @@ transcriber = TranscriberFactory.createTranscriber(
 log.info("ASR Model ready.")
 
 log.info("Loading Presidio + spaCy de_core_news_lg ...")
-nlp_config = {
-    "nlp_engine_name": "spacy",
-    "models": [{"lang_code": LANGUAGE, "model_name": "de_core_news_lg"}],
-}
-pii_analyzer = AnalyzerEngine(
-    nlp_engine = NlpEngineProvider(nlp_configuration = nlp_config).create_engine(),
-    supported_languages = [LANGUAGE])
-pii_anonymizer = AnonymizerEngine()
+anonymizer = AnonymizerFactory.createAnonymizer(LANGUAGE)
 log.info("Presidio ready.")
 log.info("App ready → http://127.0.0.1:7860")
 
@@ -119,24 +98,6 @@ def extract_channel(audio_path: str, channel_idx: int) -> np.ndarray:
     # FK-TODO: extract constant or parameter for 16000 in all places or rename method 
     return librosa.resample(mono.astype("float32"), orig_sr=sr, target_sr=16000)
 
-
-def anonymize_text(text: str) -> tuple[str, list[str]]:
-    """
-    Detect and replace PII in text using Presidio.
-    Returns (anonymized text, sorted list of detected entity types).
-    The original text is never stored or logged.
-    """
-    found = pii_analyzer.analyze(
-        text = text,
-        language = LANGUAGE,
-        entities = list(PII_OPERATORS.keys()))
-    anon = pii_anonymizer.anonymize(
-        text = text,
-        analyzer_results = found,
-        operators = PII_OPERATORS)
-    # FK-TODO: extract method getTypes(found)
-    types = sorted({e.entity_type for e in found})
-    return anon.text, types
 
 def merge_dialogue(
     segments_dispatcher: list[dict],
@@ -214,7 +175,7 @@ def process_call(audio_path, progress = gradio.Progress()):
     progress(0.9, desc="🔒 Anonymisiere...")
     all_types: set[str] = set()
     for seg in segments:
-        anon_text, types = anonymize_text(seg["text"])
+        anon_text, types = anonymizer.anonymize(seg["text"])
         seg["text_anon"] = anon_text
         all_types.update(types)
 
