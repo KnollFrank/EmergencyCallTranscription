@@ -1,23 +1,4 @@
-"""
-Emergency Call Transcription & GDPR Anonymisation
-==================================================
-Models:    WhisperX large-v3 (CPU/INT8) + Presidio
-Input:     Stereo WAV, 8 kHz
-             Channel 0 (left)  = dispatcher
-             Channel 1 (right) = caller
-Output:    True dialogue – both channels transcribed separately
-           and merged in chronological order:
-             [00.00s] Caller:     Emergency, there is an accident ...
-             [02.10s] Dispatcher: Where exactly is the accident?
-             [04.30s] Caller:     On Hauptstrasse 12 ...
-Privacy:   All processing runs locally, no cloud access,
-           raw transcript is never written to disk.
-"""
-
-import json
 import logging
-from datetime import datetime
-from pathlib import Path
 import numpy as np
 
 import gradio
@@ -54,10 +35,6 @@ SPEAKERS = {
     0: "Disponent",
     1: "Anrufer",
 }
-
-# Output directory for anonymized JSON transcripts
-EXPORT_DIR = Path.home() / "notruf-protokolle"
-EXPORT_DIR.mkdir(exist_ok=True)
 
 # ─────────────────────────────────────────────────────────
 # LOAD MODELS (once at startup)
@@ -181,39 +158,8 @@ def process_call(audio_path, progress = gradio.Progress()):
 
     anon_formatted = dialogue_to_text(segments, anon = True)
 
-    # export anonymized JSON ─
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    export_path = EXPORT_DIR / f"notruf_{timestamp}_{ENGINE}.json"
-
-    export_data = {
-        "meta": {
-            "timestamp":           datetime.now().isoformat(),
-            "audio_duration_s":    duration_s,
-            "engine":              ENGINE,
-            "model_asr":           "large-v3",
-            "anonymized":          True,
-            "pii_types":           sorted(all_types)
-        },
-        "dialogue": [
-            {
-                "speaker": seg["speaker"],
-                "start":   seg["start"],
-                "end":     seg["end"],
-                "text":    seg["text_anon"],
-            }
-            for seg in segments
-        ],
-    }
-
-    # FK-TODO: remove export?
-    with open(export_path, "w", encoding = "utf-8") as f:
-        json.dump(export_data, f, ensure_ascii = False, indent=2)
-
     progress(1.0, desc = "✅ Abgeschlossen")
-    status = (
-        f"✅  Fertig ({ENGINE}) | "
-        f"Export → {export_path.name}")
-    yield raw_text, anon_formatted, status
+    yield raw_text, anon_formatted, f"✅  Fertig ({ENGINE})"
 
 # ─────────────────────────────────────────────────────────
 # GRADIO UI
