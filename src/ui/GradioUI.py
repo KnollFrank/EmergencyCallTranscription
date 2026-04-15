@@ -132,13 +132,7 @@ class GradioUI:
         channel_idx: 0 = left (dispatcher), 1 = right (caller)
         """
         audio, sr = librosa.load(audio_path, sr=None, mono=False)
-
-        # FK-TODO: extract method
-        if audio.ndim == 1:
-            mono = audio
-        else:
-            mono = audio[channel_idx]
-
+        mono = audio if audio.ndim == 1 else audio[channel_idx]
         # FK-TODO: extract constant or parameter for 16000 in all places or rename method 
         return librosa.resample(mono.astype("float32"), orig_sr=sr, target_sr=16000)
 
