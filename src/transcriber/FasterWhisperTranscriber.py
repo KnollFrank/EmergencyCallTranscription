@@ -25,7 +25,11 @@ class FasterWhisperTranscriber:
     def _convertSegment(segment, speaker):
         return {
             "speaker": speaker,
-            "start": round(segment.start, 2),
-            "end": round(segment.end, 2),
+            "start": FasterWhisperTranscriber._round(segment.start),
+            "end": FasterWhisperTranscriber._round(segment.end),
             "text": segment.text.strip()
         }
+
+    @staticmethod
+    def _round(number):
+        return round(number, 2)

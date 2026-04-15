@@ -52,8 +52,11 @@ class WhisperXTranscriber:
     def _convertSegment(segment, speaker):
         return {
             "speaker": speaker,
-            # FK-TODO: extract method for rounding timestamps
-            "start": round(float(segment["start"]), 2),
-            "end": round(float(segment["end"]), 2),
+            "start": WhisperXTranscriber._round(segment["start"]),
+            "end": WhisperXTranscriber._round(segment["end"]),
             "text": segment["text"].strip()
         }
+
+    @staticmethod
+    def _round(number):
+        return round(float(number), 2)
