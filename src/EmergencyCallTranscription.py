@@ -4,7 +4,7 @@ from transcriber.Engine import Engine
 from transcriber.Model import Model
 from transcriber.TranscriberFactory import TranscriberFactory
 from anonymizer.AnonymizerFactory import AnonymizerFactory
-from GradioUI import GradioUI
+from ui.GradioUI import GradioUI
 
 logging.basicConfig(
     level = logging.INFO,
@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 def launchUI():
     language = "de"
-    engine = Engine.WHISPERX
+    engine = Engine.FASTER_WHISPER
     gradioUI = GradioUI(
         transcriber = TranscriberFactory.createTranscriber(
             engine = engine,
