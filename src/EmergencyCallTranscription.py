@@ -137,8 +137,6 @@ def process_call(audio_path, progress = gradio.Progress()):
         yield "", "", f"❌ Fehler: {e}"
         return
 
-    duration_s = round(len(audio_caller) / 16000)
-
     progress(0.2, desc = f"📝 Transkribiere Disponent...")
     seg_dispatcher = transcriber.transcribe(audio_dispatcher, speaker = "Disponent")
 
@@ -173,66 +171,73 @@ LAUNCH_KWARGS = {
     "css": ".footer { font-size: 0.8em; color: #888; } #status-box { border: 1px solid #ddd; }",
 }
 
-with gradio.Blocks(
-    title = "Notruf-Transkription",
-    theme = gradio.themes.Soft()
-) as demo:
-    gradio.Markdown(f"# Notruf-Transkription & Anonymisierung (Engine: `{ENGINE}`)")
-    with gradio.Row():
-        with gradio.Column(scale = 1, min_width = 280):
-            audio_input = gradio.Audio(
-                label = "Notruf-WAV hochladen",
-                type = "filepath",
-                sources = ["upload"])
-            # FK-TODO: die Kanalzuweisung im UI und im Code einstellbar machen
-            gradio.Markdown("""
-            ---
-            **Kanalzuweisung (fest):**
-            - Kanal 0 links  → Disponent
-            - Kanal 1 rechts → Anrufer
-            """)
-            status_out = gradio.Textbox(
-                label = "Status & Fortschritt",
-                lines = 3,
-                interactive = False,
-                elem_id = "status-box")
-        with gradio.Column(scale = 2):
-            COPY_BUTTON = { "buttons": ["copy"] }
-            lines = 20
-            with gradio.Tab("📄 Gesprächsprotokoll"):
-                # FK-TODO: das Gesprächsprotokoll soll editierbar sein und die Anonymisierung über einen Button gestartet werden.
-                roh_out = gradio.Textbox(
-                    label = "Gesprächsprotokoll",
-                    lines = lines,
-                    placeholder = (
-                        "[00.00s – 03.21s]  Anrufer:\n"
-                        "    Notruf, hier ist ein Unfall auf der Hauptstraße!\n\n"
-                        "[03.50s – 05.10s]  Disponent:\n"
-                        "    Wo genau ist der Unfall?\n\n"
-                        "[05.30s – 08.40s]  Anrufer:\n"
-                        "    Hauptstraße 12, vor dem Supermarkt ..."),
-                    **COPY_BUTTON)
-            with gradio.Tab("🔒 Anonymisiertes Gesprächsprotokoll"):
-                anon_out = gradio.Textbox(
-                    label = "Anonymisiertes Gesprächsprotokoll",
-                    lines = lines,
-                    placeholder = (
-                        "[00.00s – 03.21s]  Anrufer:\n"
-                        "    Notruf, hier ist ein Unfall auf der <ORT>!\n\n"
-                        "[03.50s – 05.10s]  Disponent:\n"
-                        "    Wo genau ist der Unfall?\n\n"
-                        "[05.30s – 08.40s]  Anrufer:\n"
-                        "    <ORT>, vor dem Supermarkt ..."),
-                    **COPY_BUTTON)
-    outputs = [roh_out, anon_out, status_out]
-    audio_input.upload(
-        fn = process_call,
-        inputs = [audio_input],
-        outputs = outputs,
-        show_progress_on = [status_out])
-    audio_input.clear(
-        fn = lambda: ("", "", ""),
-        outputs = outputs)
+class GradioUI:
+
+    def launch(self, launchArgs):
+        self._createUI().launch(**launchArgs)
+
+    def _createUI(self):
+        with gradio.Blocks(
+            title = "Notruf-Transkription",
+            theme = gradio.themes.Soft()
+        ) as ui:
+            gradio.Markdown(f"# Notruf-Transkription & Anonymisierung (Engine: `{ENGINE}`)")
+            with gradio.Row():
+                with gradio.Column(scale = 1, min_width = 280):
+                    audio_input = gradio.Audio(
+                        label = "Notruf-WAV hochladen",
+                        type = "filepath",
+                        sources = ["upload"])
+                    # FK-TODO: die Kanalzuweisung im UI und im Code einstellbar machen
+                    gradio.Markdown("""
+                    ---
+                    **Kanalzuweisung (fest):**
+                    - Kanal 0 links  → Disponent
+                    - Kanal 1 rechts → Anrufer
+                    """)
+                    status_out = gradio.Textbox(
+                        label = "Status & Fortschritt",
+                        lines = 3,
+                        interactive = False,
+                        elem_id = "status-box")
+                with gradio.Column(scale = 2):
+                    COPY_BUTTON = { "buttons": ["copy"] }
+                    lines = 20
+                    with gradio.Tab("📄 Gesprächsprotokoll"):
+                        # FK-TODO: das Gesprächsprotokoll soll editierbar sein und die Anonymisierung über einen Button gestartet werden.
+                        roh_out = gradio.Textbox(
+                            label = "Gesprächsprotokoll",
+                            lines = lines,
+                            placeholder = (
+                                "[00.00s – 03.21s]  Anrufer:\n"
+                                "    Notruf, hier ist ein Unfall auf der Hauptstraße!\n\n"
+                                "[03.50s – 05.10s]  Disponent:\n"
+                                "    Wo genau ist der Unfall?\n\n"
+                                "[05.30s – 08.40s]  Anrufer:\n"
+                                "    Hauptstraße 12, vor dem Supermarkt ..."),
+                            **COPY_BUTTON)
+                    with gradio.Tab("🔒 Anonymisiertes Gesprächsprotokoll"):
+                        anon_out = gradio.Textbox(
+                            label = "Anonymisiertes Gesprächsprotokoll",
+                            lines = lines,
+                            placeholder = (
+                                "[00.00s – 03.21s]  Anrufer:\n"
+                                "    Notruf, hier ist ein Unfall auf der <ORT>!\n\n"
+                                "[03.50s – 05.10s]  Disponent:\n"
+                                "    Wo genau ist der Unfall?\n\n"
+                                "[05.30s – 08.40s]  Anrufer:\n"
+                                "    <ORT>, vor dem Supermarkt ..."),
+                            **COPY_BUTTON)
+            outputs = [roh_out, anon_out, status_out]
+            audio_input.upload(
+                fn = process_call,
+                inputs = [audio_input],
+                outputs = outputs,
+                show_progress_on = [status_out])
+            audio_input.clear(
+                fn = lambda: ("", "", ""),
+                outputs = outputs)
+        return ui
 
 if __name__ == "__main__":
-    demo.launch(**LAUNCH_KWARGS)
+    GradioUI().launch(LAUNCH_KWARGS)
