@@ -76,8 +76,9 @@ LAUNCH_KWARGS = {
 
 class GradioUI:
 
-    def __init__(self, transcriber):
+    def __init__(self, transcriber, anonymizer):
         self.transcriber = transcriber
+        self.anonymizer = anonymizer
 
     def launch(self, launchArgs):
         self._createUI().launch(**launchArgs)
@@ -177,7 +178,7 @@ class GradioUI:
         progress(0.9, desc="🔒 Anonymisiere...")
         all_types: set[str] = set()
         for seg in segments:
-            anon_text, types = anonymizer.anonymize(seg["text"])
+            anon_text, types = self.anonymizer.anonymize(seg["text"])
             seg["text_anon"] = anon_text
             all_types.update(types)
 
@@ -243,4 +244,7 @@ class GradioUI:
         return "\n".join(lines)
 
 if __name__ == "__main__":
-    GradioUI(transcriber = transcriber).launch(LAUNCH_KWARGS)
+    gradioUI = GradioUI(
+        transcriber = transcriber,
+        anonymizer = anonymizer)
+    gradioUI.launch(LAUNCH_KWARGS)
