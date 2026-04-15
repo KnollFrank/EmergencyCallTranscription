@@ -118,47 +118,6 @@ def dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
 # MAIN CALLBACK (Gradio)
 # ─────────────────────────────────────────────────────────
 
-def process_call(audio_path, progress = gradio.Progress()):
-    """
-    Gradio generator callback.
-    Transcribes BOTH channels separately and merges them into a dialogue.
-    Yields: (raw_text, anon_text, status)
-    """
-    if audio_path is None:
-        yield "", "", "⚠️ Bitte zuerst eine WAV-Datei hochladen."
-        return
-
-    progress(0.1, desc="🚀 Starte Verarbeitung...")
-    yield "", "", f"🔊  Isoliere Kanäle (Engine: {ENGINE}) ..."
-    try:
-        audio_dispatcher = extract_channel(audio_path, channel_idx=0)
-        audio_caller = extract_channel(audio_path, channel_idx=1)
-    except Exception as e:
-        yield "", "", f"❌ Fehler: {e}"
-        return
-
-    progress(0.2, desc = f"📝 Transkribiere Disponent...")
-    seg_dispatcher = transcriber.transcribe(audio_dispatcher, speaker = "Disponent")
-
-    progress(0.5, desc=f"📝 Transkribiere Anrufer...")
-    seg_caller = transcriber.transcribe(audio_caller, speaker = "Anrufer")
-
-    progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
-    segments = merge_dialogue(seg_dispatcher, seg_caller)
-    raw_text = dialogue_to_text(segments, anon = False)
-
-    progress(0.9, desc="🔒 Anonymisiere...")
-    all_types: set[str] = set()
-    for seg in segments:
-        anon_text, types = anonymizer.anonymize(seg["text"])
-        seg["text_anon"] = anon_text
-        all_types.update(types)
-
-    anon_formatted = dialogue_to_text(segments, anon = True)
-
-    progress(1.0, desc = "✅ Abgeschlossen")
-    yield raw_text, anon_formatted, f"✅  Fertig ({ENGINE})"
-
 # ─────────────────────────────────────────────────────────
 # GRADIO UI
 # ─────────────────────────────────────────────────────────
@@ -172,6 +131,9 @@ LAUNCH_KWARGS = {
 }
 
 class GradioUI:
+
+    def __init__(self):
+        pass
 
     def launch(self, launchArgs):
         self._createUI().launch(**launchArgs)
@@ -230,7 +192,7 @@ class GradioUI:
                             **COPY_BUTTON)
             outputs = [roh_out, anon_out, status_out]
             audio_input.upload(
-                fn = process_call,
+                fn = self._process_call,
                 inputs = [audio_input],
                 outputs = outputs,
                 show_progress_on = [status_out])
@@ -238,6 +200,47 @@ class GradioUI:
                 fn = lambda: ("", "", ""),
                 outputs = outputs)
         return ui
+    
+    def _process_call(self, audio_path, progress = gradio.Progress()):
+        """
+        Gradio generator callback.
+        Transcribes BOTH channels separately and merges them into a dialogue.
+        Yields: (raw_text, anon_text, status)
+        """
+        if audio_path is None:
+            yield "", "", "⚠️ Bitte zuerst eine WAV-Datei hochladen."
+            return
+
+        progress(0.1, desc="🚀 Starte Verarbeitung...")
+        yield "", "", f"🔊  Isoliere Kanäle (Engine: {ENGINE}) ..."
+        try:
+            audio_dispatcher = extract_channel(audio_path, channel_idx=0)
+            audio_caller = extract_channel(audio_path, channel_idx=1)
+        except Exception as e:
+            yield "", "", f"❌ Fehler: {e}"
+            return
+
+        progress(0.2, desc = f"📝 Transkribiere Disponent...")
+        seg_dispatcher = transcriber.transcribe(audio_dispatcher, speaker = "Disponent")
+
+        progress(0.5, desc=f"📝 Transkribiere Anrufer...")
+        seg_caller = transcriber.transcribe(audio_caller, speaker = "Anrufer")
+
+        progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
+        segments = merge_dialogue(seg_dispatcher, seg_caller)
+        raw_text = dialogue_to_text(segments, anon = False)
+
+        progress(0.9, desc="🔒 Anonymisiere...")
+        all_types: set[str] = set()
+        for seg in segments:
+            anon_text, types = anonymizer.anonymize(seg["text"])
+            seg["text_anon"] = anon_text
+            all_types.update(types)
+
+        anon_formatted = dialogue_to_text(segments, anon = True)
+
+        progress(1.0, desc = "✅ Abgeschlossen")
+        yield raw_text, anon_formatted, f"✅  Fertig ({ENGINE})"
 
 if __name__ == "__main__":
     GradioUI().launch(LAUNCH_KWARGS)
