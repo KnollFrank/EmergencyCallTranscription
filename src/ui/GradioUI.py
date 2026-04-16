@@ -24,6 +24,7 @@ class GradioUI:
             title = "Notruf-Transkription",
             theme = gradio.themes.Soft()
         ) as ui:
+            # FK-TODO: die engine soll im UI einstellbar sein
             gradio.Markdown(f"# Notruf-Transkription & Anonymisierung (Engine: `{self.engine}`)")
             with gradio.Row():
                 with gradio.Column(scale = 1, min_width = 280):
