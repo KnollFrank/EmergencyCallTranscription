@@ -124,28 +124,18 @@ class GradioUI:
         """
         if table_data is None or len(table_data) == 0:
             return None
-        
-        # FK-TODO: extract method
-        # Handle Gradio's Dataframe format (can be list of lists or pandas DF)
-        rows = table_data.values if hasattr(table_data, "values") else table_data
-        processed_rows = []
-        
-        for row in rows:
-            # Check row length to avoid index errors and process only the content column (index 2)
-            if len(row) >= 3:
-                time_val = row[0]
-                role_val = row[1]
-                text_val = str(row[2])
-                
-                if text_val.strip():
-                    anon_text, _ = self.anonymizer.anonymize(text_val)
-                    processed_rows.append([time_val, role_val, anon_text])
-                else:
-                    processed_rows.append([time_val, role_val, text_val])
-            else:
-                processed_rows.append(row)
-                
-        return processed_rows
+        return self._anonymizeRows(GradioUI._getRows(table_data))
+
+    @staticmethod
+    def _getRows(table_data):
+        return table_data.values if hasattr(table_data, "values") else table_data
+
+    def _anonymizeRows(self, rows):
+        return [self._anonymizeRow(row) for row in rows]
+
+    def _anonymizeRow(self, row):
+        anon_text, _ = self.anonymizer.anonymize(str(row[2]))
+        return [row[0], row[1], anon_text]
 
     @staticmethod
     def _extract_channel(audio_path: str, channel_idx: int) -> np.ndarray:
