@@ -108,4 +108,4 @@ Erkennung & Ersetzung personenbezogener Daten (PII)
 - **Lokale Verarbeitung:** Es verlassen keine Daten den Rechner.
 - **Datensparsamkeit:** Rohtranskripte werden nur temporär im RAM/Browser gehalten und standardmäßig nicht auf der Festplatte gespeichert.
 - **Zweckbindung:** Das Tool ist zur Erstellung anonymisierter Protokolle für die weitere (ungefährliche) Verarbeitung gedacht.
-- **Produktionseinsatz:** Für den tatsächlichen Betrieb in einer Leitstelle ist eine Datenschutz-Folgenabschätzung (DSFA gem. Art. 35 DSGVO) erforderlich.
+- **Machbarkeitsstudie:** Dieses Tool ist lediglich ein Proof of Concept (PoC) / eine Machbarkeitsstudie und nicht für den produktiven Einsatz in einer Leitstelle vorgesehen.
