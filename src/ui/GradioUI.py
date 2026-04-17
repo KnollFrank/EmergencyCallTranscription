@@ -136,6 +136,7 @@ class GradioUI:
             yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
             return
 
+        # FK-TODO: extract method
         try:
             progress(0.1, desc="🔍 Prüfe WAV-Datei...")
             audio, sr = librosa.load(audio_path, sr=None, mono=False)
@@ -155,7 +156,6 @@ class GradioUI:
             target_sr = 16000  # Resample to 16kHz for WhisperX
             audio_dispatcher = librosa.resample(audio[disp_idx].astype("float32"), orig_sr=sr, target_sr=target_sr)
             audio_caller = librosa.resample(audio[caller_idx].astype("float32"), orig_sr=sr, target_sr=target_sr)
-
         except Exception as e:
             yield None, None, f"❌ Fehler beim Laden/Prüfen der WAV-Datei: {e}"
             return
@@ -173,6 +173,7 @@ class GradioUI:
         progress(1.0, desc = "✅ Transkription abgeschlossen")
         yield GradioUI._getTableData(segments), None, f"✅ Transkription abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
 
+    # FK-TODO: add unit test
     @staticmethod
     def _merge_consecutive_segments(segments: list[dict]) -> list[dict]:
         """
