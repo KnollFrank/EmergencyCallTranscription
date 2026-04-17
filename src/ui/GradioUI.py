@@ -183,8 +183,15 @@ class GradioUI:
 
     @staticmethod
     def _getTableData(segments):
+        def format_time(seconds):
+            minutes = int(seconds // 60)
+            secs = int(seconds % 60)
+            return f"{minutes:02d}:{secs:02d}"
+
         def getTableRow(segment):
-            timestamp = f"{segment['start']:06.2f}s – {segment['end']:06.2f}s"
+            start_time = format_time(segment['start'])
+            end_time = format_time(segment['end'])
+            timestamp = f"{start_time} – {end_time}"
             return [timestamp, segment["speaker"], segment["text"]]
         
         return [getTableRow(segment) for segment in segments]
