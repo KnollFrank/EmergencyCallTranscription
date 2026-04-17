@@ -45,17 +45,20 @@ class GradioUI:
                         interactive = False,
                         elem_id = "status-box")
                 with gradio.Column(scale = 2):
+                    headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"]
                     roh_out = gradio.Dataframe(
-                        headers=["Zeit", "Sprecher", "Text"],
-                        datatype=["str", "str", "str"],
-                        col_count=(3, "fixed"),
-                        label="📄 Gesprächsprotokoll (editierbar)",
-                        interactive=True)
+                        headers = headers,
+                        datatype = ["str", "str", "str"],
+                        col_count = (3, "fixed"),
+                        label = "📄 Gesprächsprotokoll",
+                        interactive = True)
+                    
                     anon_btn = gradio.Button(
                         value = "Anonymisierung starten ↓", 
                         variant = "primary")
+                    
                     anon_out = gradio.Dataframe(
-                        headers = ["Zeit", "Sprecher", "Text"],
+                        headers = headers,
                         datatype = ["str", "str", "str"],
                         col_count = (3, "fixed"),
                         label = "🔒 Anonymisiertes Gesprächsprotokoll",
@@ -66,22 +69,27 @@ class GradioUI:
                 inputs = [audio_input],
                 outputs = [roh_out, anon_out, status_out],
                 show_progress_on = [status_out])
+            
             anon_btn.click(
                 fn = self._anonymize,
                 inputs = [roh_out],
                 outputs = [anon_out])
+            
             audio_input.clear(
                 fn = lambda: (None, None, ""),
                 outputs = [roh_out, anon_out, status_out])
         return ui
     
     def _transcribe(self, audio_path, progress = gradio.Progress()):
+        """
+        Transcribes audio and yields the formatted dataframe rows.
+        """
         if audio_path is None:
             yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
             return
 
         progress(0.1, desc="🚀 Starte Verarbeitung...")
-        yield None, None, f"🔊  Isoliere Kanäle (Engine: {self.engine}) ..."
+        yield None, None, f"🔊 Isoliere Kanäle (Engine: {self.engine}) ..."
         try:
             audio_dispatcher = GradioUI._extract_channel(audio_path, channel_idx=0)
             audio_caller = GradioUI._extract_channel(audio_path, channel_idx=1)
@@ -105,12 +113,12 @@ class GradioUI:
             time_str = f"{seg['start']:06.2f}s – {seg['end']:06.2f}s"
             table_data.append([time_str, seg["speaker"], seg["text"]])
 
-        progress(1.0, desc = "✅ Transkription abgeschlossen")
-        yield table_data, None, f"✅  Transkription fertig ({self.engine}). Sie können den Text nun in der Tabelle bearbeiten."
+        progress(1.0, desc = "✅ Transcription complete")
+        yield table_data, None, f"✅ Transcription finished ({self.engine}). You can now edit the text in the table."
 
     def _anonymize(self, table_data):
         """
-        Anonymizes ONLY the third column (Text) of the provided table data.
+        Anonymizes ONLY the 'Gesprächsinhalt' (third) column of the provided table data.
         """
         if table_data is None or len(table_data) == 0:
             return None
@@ -121,16 +129,19 @@ class GradioUI:
         processed_rows = []
         
         for row in rows:
-            time_val = row[0]
-            speaker_val = row[1]
-            text_val = row[2]
-            
-            # Only send the actual dialogue text to the anonymizer
-            if text_val and str(text_val).strip():
-                anon_text, _ = self.anonymizer.anonymize(str(text_val))
-                processed_rows.append([time_val, speaker_val, anon_text])
+            # Check row length to avoid index errors and process only the content column (index 2)
+            if len(row) >= 3:
+                time_val = row[0]
+                role_val = row[1]
+                text_val = str(row[2])
+                
+                if text_val.strip():
+                    anon_text, _ = self.anonymizer.anonymize(text_val)
+                    processed_rows.append([time_val, role_val, anon_text])
+                else:
+                    processed_rows.append([time_val, role_val, text_val])
             else:
-                processed_rows.append([time_val, speaker_val, text_val])
+                processed_rows.append(row)
                 
         return processed_rows
 
@@ -147,6 +158,6 @@ class GradioUI:
     @staticmethod
     def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
         """
-        Sorts all segments chronologically.
+        Sorts all segments chronologically by start time.
         """
         return sorted(segments_dispatcher + segments_caller, key = lambda s: s["start"])
