@@ -1,27 +1,40 @@
-# Emergency Call Transcription & GDPR Anonymisation
+# Notruf-Transkription & Anonymisierung
 
-Local, GDPR-compliant pipeline for transcribing and anonymising
-emergency call recordings.
+Lokale, DSGVO-konforme Pipeline zur Transkription und Anonymisierung von Notruf-Aufzeichnungen. 
 
-**Hardware:** Dell XPS 9320 · Intel i7-1360P · 32 GB RAM · Ubuntu 24.04 LTS  
-**Mode:** Fully local, no CUDA, no cloud access
+Die Anwendung bietet eine Web-Oberfläche (Gradio), über die Notrufe (Stereo-WAV, 8kHz) hochgeladen, durch verschiedene KI-Modelle transkribiert und anschließend mittels Presidio (NLP) anonymisiert werden können. 
+
+**Hardware-Referenz:** Dell XPS 9320 · Intel i7-1360P · 32 GB RAM · Ubuntu 24.04 LTS  
+**Modus:** Vollständig lokal, keine Cloud-Anbindung notwendig, CPU-kompatibel.
 
 ---
 
-## Project structure
+## Projektstruktur
 
-```
+```text
 EmergencyCallTranscription/
 ├── src/
-│   └── EmergencyCallTranscription.py # Gradio web UI
-├── requirements.txt                  # all Python dependencies
-├── setup_und_start.sh                # setup & launch script
+│   ├── EmergencyCallTranscription.py   # Haupt-Einstiegspunkt
+│   ├── anonymizer/                     # DSGVO-Anonymisierung (Presidio)
+│   │   ├── Anonymizer.py
+│   │   └── AnonymizerFactory.py
+│   ├── transcriber/                    # Transkriptions-Engines
+│   │   ├── Engine.py
+│   │   ├── FasterWhisperTranscriber.py
+│   │   ├── Model.py
+│   │   ├── TranscriberFactory.py
+│   │   └── WhisperXTranscriber.py
+│   └── ui/                             # Gradio Web-Interface
+│       └── GradioUI.py
+├── audio/                              # Beispiel-Audiodateien
+├── requirements.txt                    # Python-Abhängigkeiten
+├── setup_und_start.sh                  # Skript für Setup & Start
 └── README.md
 ```
 
 ---
 
-## Quick start
+## Schnellstart
 
 ```bash
 cd EmergencyCallTranscription
@@ -29,19 +42,18 @@ chmod +x setup_und_start.sh
 bash setup_und_start.sh
 ```
 
-The script:
-1. Checks for Python 3.12, ffmpeg, git
-2. Creates a venv under `./venv/`
-3. Runs `pip install -r requirements.txt`
-4. Downloads the German spaCy model
-5. Starts the app at http://127.0.0.1:7860
+Das Skript:
+1. Prüft die Systemvoraussetzungen (Python 3.12, ffmpeg, git)
+2. Erstellt eine virtuelle Umgebung unter `./venv/`
+3. Installiert alle Pakete aus der `requirements.txt`
+4. Lädt das deutsche spaCy-Modell herunter
+5. Startet die Web-Oberfläche unter http://127.0.0.1:7860
 
-**First start:** WhisperX downloads its models from Hugging Face (~1.5 GB),
-then caches them locally under `~/.cache`.
+**Beim ersten Start:** Die Modelle (WhisperX / Faster-Whisper) werden von Hugging Face heruntergeladen (ca. 1.5 GB bis 3 GB je nach Modell) und lokal unter `~/.cache` gespeichert.
 
 ---
 
-## Manual start (after installation)
+## Manueller Start (nach Installation)
 
 ```bash
 cd EmergencyCallTranscription
@@ -51,125 +63,49 @@ python src/EmergencyCallTranscription.py
 
 ---
 
-## Input format
+## Bedienung der Web-Oberfläche
 
-| Parameter      | Value          |
-|----------------|----------------|
-| Format         | WAV (PCM)      |
-| Sample rate    | 8 kHz          |
-| Channels       | Stereo         |
-| Channel 0 (left)  | Dispatcher  |
-| Channel 1 (right) | Caller      |
+Die UI ist in drei Schritte unterteilt:
+
+### Schritt 1: Eingabe & Einstellungen
+* **Notruf-WAV hochladen:** Die Datei muss im WAV-Format (PCM), Stereo (2 Kanäle) und mit einer Abtastrate von 8 kHz vorliegen.
+* **Transkriptions-Engine:** Auswahl zwischen `WhisperX` (sehr genaue Zeitstempel) und `Faster-Whisper` (schneller, ressourcenschonender).
+* **Kanalzuordnung:** Auswahl, welcher Kanal (links/rechts) dem Disponenten bzw. dem Anrufer zugeordnet ist.
+
+### Schritt 2: Transkription & Korrektur
+Nach dem Klick auf "Transkription starten" wird das Audio verarbeitet. Das Ergebnis wird als interaktive Tabelle (Gesprächsprotokoll) dargestellt, in der manuelle Korrekturen am erkannten Text vorgenommen werden können.
+
+### Schritt 3: Anonymisiertes Ergebnis
+Ein Klick auf "Anonymisierung starten" leitet den (ggf. korrigierten) Text durch die Presidio-NLP-Pipeline. Das Resultat ist eine zweite Tabelle, in der sensible Daten wie Namen, Orte und Telefonnummern durch Platzhalter wie `<PERSON>`, `<LOCATION>` ersetzt wurden.
 
 ---
 
-## Pipeline
+## Architektur & Pipeline
 
-```
-WAV (stereo, 8 kHz)
+```text
+WAV (Stereo, 8 kHz)
        │
        ▼
-Channel extraction (librosa)
-8 kHz → 16 kHz resampling
-       │  (both channels in parallel)
-       ▼
-WhisperX large-v3 (CPU/INT8, German)
-+ word-level alignment (timestamps)
+Kanal-Trennung & Resampling (librosa)
+8 kHz → 16 kHz (für Whisper-Modelle)
        │
        ▼
-Presidio (spaCy de_core_news_lg)
-GDPR anonymisation
+Transkriptions-Engine (WhisperX / Faster-Whisper)
+Erkennung pro Kanal & Zusammenführung des Dialogs
        │
        ▼
-JSON export (~/notruf-protokolle/)
-[raw transcript never saved to disk]
+Manuelle Korrektur-Möglichkeit (Gradio Dataframe)
+       │
+       ▼
+Microsoft Presidio (spaCy de_core_news_lg)
+Erkennung & Ersetzung personenbezogener Daten (PII)
 ```
 
 ---
 
-## Estimated duration (1:47 min audio, i7-1360P)
+## DSGVO-Hinweise
 
-| Step                   | Duration     |
-|------------------------|--------------|
-| Channel + resampling   | ~5 sec       |
-| WhisperX × 2 channels  | ~2–4 min     |
-| Presidio               | ~5 sec       |
-| **Total**              | **~2–4 min** |
-
----
-
-## PII placeholders (Presidio)
-
-| Placeholder      | Example                  |
-|------------------|--------------------------|
-| `<PERSON>`       | Max Mustermann           |
-| `<ORT>`          | Stuttgarter Straße 12    |
-| `<TELEFON>`      | 0711-123456              |
-| `<DATUM>`        | 14. März, gestern Abend  |
-| `<EMAIL>`        | name@beispiel.de         |
-| `<IBAN>`         | DE89 3704 0044 0532      |
-| `<KENNZEICHEN>`  | LB-XY 123                |
-
----
-
-## Export format
-
-Anonymised transcripts are saved to `~/notruf-protokolle/notruf_YYYYMMDD_HHMMSS.json`:
-
-```json
-{
-  "meta": {
-    "timestamp": "2025-04-11T14:32:01",
-    "audio_duration_s": 107,
-    "model_asr": "whisperx-large-v3",
-    "anonymised": true,
-    "pii_types": ["LOCATION", "PERSON", "PHONE_NUMBER"]
-  },
-  "dialogue": [
-    { "speaker": "Anrufer",   "start": 0.0,  "end": 3.21, "text": "Unfall auf der <ORT>." },
-    { "speaker": "Disponent", "start": 3.50, "end": 5.10, "text": "Wo genau?" }
-  ]
-}
-```
-
----
-
-## GDPR notes
-
-- **Local processing:** no data leaves the machine
-- **Data minimisation:** raw transcript is never written to disk
-- **Purpose limitation:** export contains anonymised text only
-- **Cleanup:** temporary audio files deleted immediately after use
-- **Production use:** a DPIA (Art. 35 GDPR) is required
-
----
-
-## Troubleshooting
-
-**`No module named 'whisperx'`**
-```bash
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-**spaCy model missing**
-```bash
-source venv/bin/activate
-python -m spacy download de_core_news_lg
-```
-
-**Out of memory during transcription**
-```bash
-# Increase swap (one-time):
-sudo swapoff /swapfile
-sudo fallocate -l 8G /swapfile
-sudo mkswap /swapfile && sudo swapon /swapfile
-```
-
-**Change model (speed vs. accuracy)**
-
-Edit the `load_model` call in `src/EmergencyCallTranscription.py`:
-```python
-asr_model = whisperx.load_model("medium", ...)      # faster, slightly less accurate
-asr_model = whisperx.load_model("large-v3", ...)    # default
-```
+- **Lokale Verarbeitung:** Es verlassen keine Daten den Rechner.
+- **Datensparsamkeit:** Rohtranskripte werden nur temporär im RAM/Browser gehalten und standardmäßig nicht auf der Festplatte gespeichert.
+- **Zweckbindung:** Das Tool ist zur Erstellung anonymisierter Protokolle für die weitere (ungefährliche) Verarbeitung gedacht.
+- **Produktionseinsatz:** Für den tatsächlichen Betrieb in einer Leitstelle ist eine Datenschutz-Folgenabschätzung (DSFA gem. Art. 35 DSGVO) erforderlich.
