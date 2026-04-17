@@ -37,6 +37,12 @@ class GradioUI:
                             label = "Notruf-WAV hochladen",
                             type = "filepath",
                             sources = ["upload"])
+                        gradio.Markdown(
+                            "<small>**Anforderungen an die WAV-Datei:**<br>"
+                            "&nbsp;&nbsp;• Format: WAV (PCM)<br>"
+                            "&nbsp;&nbsp;• Kanäle: 2 (Stereo)<br>"
+                            "&nbsp;&nbsp;• Abtastrate: 8 kHz</small>"
+                        )
                         filename_out = gradio.Textbox(
                             label = "Ausgewählte Datei",
                             interactive = False,
@@ -129,24 +135,32 @@ class GradioUI:
         if audio_path is None:
             yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
             return
-            
-        transcriber = self._get_transcriber(engine_name)
-
-        progress(0.1, desc="🚀 Starte Verarbeitung...")
-        yield None, None, f"🔊 Isoliere Kanäle (Engine: {engine_name}) ..."
-        
-        if channel_assignment == "Disponent (links) / Anrufer (rechts)":
-            disp_idx, caller_idx = 0, 1
-        else:
-            disp_idx, caller_idx = 1, 0
 
         try:
-            audio_dispatcher = GradioUI._extract_channel(audio_path, channel_idx=disp_idx)
-            audio_caller = GradioUI._extract_channel(audio_path, channel_idx=caller_idx)
+            progress(0.1, desc="🔍 Prüfe WAV-Datei...")
+            audio, sr = librosa.load(audio_path, sr=None, mono=False)
+
+            if not (audio.ndim == 2 and audio.shape[0] == 2):
+                raise ValueError(f"Die Datei muss 2 Kanäle (Stereo) haben, hat aber {audio.shape[0] if audio.ndim == 2 else 1}.")
+
+            if sr != 8000:
+                raise ValueError(f"Die Datei muss eine Abtastrate von 8 kHz haben, hat aber {sr / 1000:.1f} kHz.")
+
+            progress(0.15, desc="🔊 Isoliere & resample Kanäle...")
+            if channel_assignment == "Disponent (links) / Anrufer (rechts)":
+                disp_idx, caller_idx = 0, 1
+            else:
+                disp_idx, caller_idx = 1, 0
+
+            target_sr = 16000  # Resample to 16kHz for WhisperX
+            audio_dispatcher = librosa.resample(audio[disp_idx].astype("float32"), orig_sr=sr, target_sr=target_sr)
+            audio_caller = librosa.resample(audio[caller_idx].astype("float32"), orig_sr=sr, target_sr=target_sr)
+
         except Exception as e:
-            yield None, None, f"❌ Fehler: {e}"
+            yield None, None, f"❌ Fehler beim Laden/Prüfen der WAV-Datei: {e}"
             return
 
+        transcriber = self._get_transcriber(engine_name)
         progress(0.2, desc = f"📝 Transkribiere Disponent...")
         seg_dispatcher = transcriber.transcribe(audio_dispatcher, speaker = "Disponent")
 
@@ -156,8 +170,8 @@ class GradioUI:
         progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
         segments = GradioUI._merge_dialogue(seg_dispatcher, seg_caller)
         
-        progress(1.0, desc = "✅ Transcription complete")
-        yield GradioUI._getTableData(segments), None, f"✅ Transcription finished ({engine_name}). You can now edit the text in the table."
+        progress(1.0, desc = "✅ Transkription abgeschlossen")
+        yield GradioUI._getTableData(segments), None, f"✅ Transkription abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
 
     @staticmethod
     def _merge_consecutive_segments(segments: list[dict]) -> list[dict]:
@@ -214,15 +228,6 @@ class GradioUI:
     def _anonymizeRow(self, row):
         anon_text, _ = self.anonymizer.anonymize(str(row[2]))
         return [row[0], row[1], anon_text]
-
-    @staticmethod
-    def _extract_channel(audio_path: str, channel_idx: int, target_sr: int = 16000) -> np.ndarray:
-        """
-        Extracts channel and resamples to target_sr.
-        """
-        audio, sr = librosa.load(audio_path, sr=None, mono=False)
-        mono = audio if audio.ndim == 1 else audio[channel_idx]
-        return librosa.resample(mono.astype("float32"), orig_sr=sr, target_sr=target_sr)
 
     @staticmethod
     def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
