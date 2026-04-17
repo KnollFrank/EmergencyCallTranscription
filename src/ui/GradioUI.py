@@ -45,23 +45,22 @@ class GradioUI:
                         interactive = False,
                         elem_id = "status-box")
                 with gradio.Column(scale = 2):
-                    COPY_BUTTON = { "buttons": ["copy"] }
-                    lines = 12
-                    roh_out = gradio.Textbox(
-                        label = "📄 Gesprächsprotokoll",
-                        lines = lines,
-                        interactive = True,
-                        placeholder = "Das Transkript erscheint hier nach dem Upload...",
-                        **COPY_BUTTON)
+                    roh_out = gradio.Dataframe(
+                        headers=["Zeit", "Sprecher", "Text"],
+                        datatype=["str", "str", "str"],
+                        col_count=(3, "fixed"),
+                        label="📄 Gesprächsprotokoll (editierbar)",
+                        interactive=True)
                     anon_btn = gradio.Button(
                         value = "Anonymisierung starten ↓", 
                         variant = "primary")
-                    anon_out = gradio.Textbox(
+                    anon_out = gradio.Dataframe(
+                        headers = ["Zeit", "Sprecher", "Text"],
+                        datatype = ["str", "str", "str"],
+                        col_count = (3, "fixed"),
                         label = "🔒 Anonymisiertes Gesprächsprotokoll",
-                        lines = lines,
-                        interactive = False,
-                        placeholder = "Klicken Sie auf den Button oben, um PII zu maskieren.",
-                        **COPY_BUTTON)
+                        interactive = False)
+
             audio_input.upload(
                 fn = self._transcribe,
                 inputs = [audio_input],
@@ -72,22 +71,22 @@ class GradioUI:
                 inputs = [roh_out],
                 outputs = [anon_out])
             audio_input.clear(
-                fn = lambda: ("", "", ""),
+                fn = lambda: (None, None, ""),
                 outputs = [roh_out, anon_out, status_out])
         return ui
     
     def _transcribe(self, audio_path, progress = gradio.Progress()):
         if audio_path is None:
-            yield "", "", "⚠️ Bitte zuerst eine WAV-Datei hochladen."
+            yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
             return
 
         progress(0.1, desc="🚀 Starte Verarbeitung...")
-        yield "", "", f"🔊  Isoliere Kanäle (Engine: {self.engine}) ..."
+        yield None, None, f"🔊  Isoliere Kanäle (Engine: {self.engine}) ..."
         try:
             audio_dispatcher = GradioUI._extract_channel(audio_path, channel_idx=0)
             audio_caller = GradioUI._extract_channel(audio_path, channel_idx=1)
         except Exception as e:
-            yield "", "", f"❌ Fehler: {e}"
+            yield None, None, f"❌ Fehler: {e}"
             return
 
         progress(0.2, desc = f"📝 Transkribiere Disponent...")
@@ -98,20 +97,47 @@ class GradioUI:
 
         progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
         segments = GradioUI._merge_dialogue(seg_dispatcher, seg_caller)
-        raw_text = GradioUI._dialogue_to_text(segments, anon = False)
+        
+        # FK-TODO: extract method
+        table_data = []
+        for seg in segments:
+            time_str = f"{seg['start']:06.2f}s – {seg['end']:06.2f}s"
+            table_data.append([time_str, seg["speaker"], seg["text"]])
 
         progress(1.0, desc = "✅ Transkription abgeschlossen")
-        yield raw_text, "", f"✅  Transkription fertig ({self.engine}). Sie können den Text nun bearbeiten."
+        yield table_data, None, f"✅  Transkription fertig ({self.engine}). Sie können den Text nun in der Tabelle bearbeiten."
 
-    def _anonymize(self, text: str):
-        if not text or text.strip() == "":
-            return "⚠️ Kein Text zum Anonymisieren vorhanden."
+    def _anonymize(self, table_data):
+        """
+        Anonymizes ONLY the third column (Text) of the provided table data.
+        """
+        if table_data is None or len(table_data) == 0:
+            return None
         
-        anon_text, _ = self.anonymizer.anonymize(text)
-        return anon_text
+        # FK-TODO: extract method
+        # Handle Gradio's Dataframe format (can be list of lists or pandas DF)
+        rows = table_data.values if hasattr(table_data, "values") else table_data
+        processed_rows = []
+        
+        for row in rows:
+            time_val = row[0]
+            speaker_val = row[1]
+            text_val = row[2]
+            
+            # Only send the actual dialogue text to the anonymizer
+            if text_val and str(text_val).strip():
+                anon_text, _ = self.anonymizer.anonymize(str(text_val))
+                processed_rows.append([time_val, speaker_val, anon_text])
+            else:
+                processed_rows.append([time_val, speaker_val, text_val])
+                
+        return processed_rows
 
     @staticmethod
     def _extract_channel(audio_path: str, channel_idx: int) -> np.ndarray:
+        """
+        Extracts channel and resamples to 16kHz.
+        """
         audio, sr = librosa.load(audio_path, sr=None, mono=False)
         mono = audio if audio.ndim == 1 else audio[channel_idx]
         # FK-TODO: extract constant or parameter for 16000 in all places or rename method? 
@@ -119,22 +145,7 @@ class GradioUI:
 
     @staticmethod
     def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
+        """
+        Sorts all segments chronologically.
+        """
         return sorted(segments_dispatcher + segments_caller, key = lambda s: s["start"])
-
-    @staticmethod
-    def _dialogue_to_text(segments: list[dict], anon: bool = False) -> str:
-        lines = []
-        last_speaker = None
-
-        for seg in segments:
-            text    = seg.get("text_anon", seg["text"]) if anon else seg["text"]
-            speaker = seg["speaker"]
-
-            if last_speaker is not None and speaker != last_speaker:
-                lines.append("")
-
-            lines.append(f"[{seg['start']:06.2f}s – {seg['end']:06.2f}s]  {speaker}:")
-            lines.append(f"    {text}")
-            last_speaker = speaker
-
-        return "\n".join(lines)
