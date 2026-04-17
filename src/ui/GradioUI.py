@@ -61,7 +61,7 @@ class GradioUI:
                         )
 
                 transcribe_btn = gradio.Button(
-                    value = "Transkription starten",
+                    value = "Transkription starten ↓",
                     variant = "primary"
                 )
                 status_out = gradio.Textbox(
