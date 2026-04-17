@@ -28,82 +28,90 @@ class GradioUI:
             theme = gradio.themes.Soft()
         ) as ui:
             gradio.Markdown("# Notruf-Transkription & Anonymisierung")
-            with gradio.Row():
-                with gradio.Column(scale = 1, min_width = 280):
-                    engine_dropdown = gradio.Dropdown(
-                        choices = [e.value for e in Engine], 
-                        value = self.engine, 
-                        label = "Transkriptions-Engine"
-                    )
-                    audio_input = gradio.Audio(
-                        label = "Notruf-WAV hochladen",
-                        type = "filepath",
-                        sources = ["upload"])
 
-                    filename_out = gradio.Textbox(
-                        label = "Ausgewählte Datei",
-                        interactive = False,
-                        lines = 1
-                    )
+            with gradio.Group():
+                gradio.Markdown("### Schritt 1: Eingabe & Einstellungen")
+                with gradio.Row():
+                    with gradio.Column(scale = 1):
+                        audio_input = gradio.Audio(
+                            label = "Notruf-WAV hochladen",
+                            type = "filepath",
+                            sources = ["upload"])
+                        filename_out = gradio.Textbox(
+                            label = "Ausgewählte Datei",
+                            interactive = False,
+                            lines = 1
+                        )
+                    with gradio.Column(scale = 1):
+                        engine_dropdown = gradio.Dropdown(
+                            choices = [e.value for e in Engine], 
+                            value = self.engine, 
+                            label = "Transkriptions-Engine"
+                        )
+                        channel_assignment = gradio.Radio(
+                            choices = ["Disponent (links) / Anrufer (rechts)", "Anrufer (links) / Disponent (rechts)"],
+                            value = "Disponent (links) / Anrufer (rechts)",
+                            label = "Kanalzuordnung (Kanal 0 / Kanal 1)"
+                        )
 
-                    gradio.Markdown("---")
-                    channel_assignment = gradio.Radio(
-                        choices = ["Disponent (links) / Anrufer (rechts)", "Anrufer (links) / Disponent (rechts)"],
-                        value = "Disponent (links) / Anrufer (rechts)",
-                        label = "Kanalzuordnung (Kanal 0 / Kanal 1)"
-                    )
-                    
-                    transcribe_btn = gradio.Button(
-                        value = "Transkription starten",
-                        variant = "primary"
-                    )
+                transcribe_btn = gradio.Button(
+                    value = "Transkription starten",
+                    variant = "primary"
+                )
+                status_out = gradio.Textbox(
+                    label = "Status & Fortschritt",
+                    lines = 3,
+                    interactive = False,
+                    elem_id = "status-box")
 
-                    status_out = gradio.Textbox(
-                        label = "Status & Fortschritt",
-                        lines = 3,
-                        interactive = False,
-                        elem_id = "status-box")
-                with gradio.Column(scale = 2):
-                    headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"]
-                    roh_out = gradio.Dataframe(
-                        headers = headers,
-                        datatype = ["str", "str", "str"],
-                        col_count = (3, "fixed"),
-                        label = "📄 Gesprächsprotokoll",
-                        interactive = True)
-                    
-                    anon_btn = gradio.Button(
-                        value = "Anonymisierung starten ↓", 
-                        variant = "primary")
-                    
-                    anon_out = gradio.Dataframe(
-                        headers = headers,
-                        datatype = ["str", "str", "str"],
-                        col_count = (3, "fixed"),
-                        label = "🔒 Anonymisiertes Gesprächsprotokoll",
-                        interactive = False)
+            with gradio.Group():
+                gradio.Markdown("### Schritt 2: Transkription & Korrektur")
+                audio_playback = gradio.Audio(
+                    label = "Audio-Wiedergabe",
+                    type = "filepath",
+                    interactive = False
+                )
+                headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"]
+                roh_out = gradio.Dataframe(
+                    headers = headers,
+                    datatype = ["str", "str", "str"],
+                    col_count = (3, "fixed"),
+                    label = "📄 Gesprächsprotokoll",
+                    interactive = True)
+
+                anon_btn = gradio.Button(
+                    value = "Anonymisierung starten ↓", 
+                    variant = "primary")
+
+            with gradio.Group():
+                gradio.Markdown("### Schritt 3: Anonymisiertes Ergebnis")
+                anon_out = gradio.Dataframe(
+                    headers = headers,
+                    datatype = ["str", "str", "str"],
+                    col_count = (3, "fixed"),
+                    label = "🔒 Anonymisiertes Gesprächsprotokoll",
+                    interactive = True)
 
             audio_input.change(
-                fn = lambda path: os.path.basename(path) if path else "",
+                fn = lambda path: (os.path.basename(path) if path else "", path),
                 inputs = [audio_input],
-                outputs = [filename_out])
+                outputs = [filename_out, audio_playback])
 
             transcribe_btn.click(
                 fn = self._transcribe,
                 inputs = [audio_input, engine_dropdown, channel_assignment],
                 outputs = [roh_out, anon_out, status_out],
                 show_progress_on = [status_out])
-            
+
             anon_btn.click(
                 fn = self._anonymize,
                 inputs = [roh_out],
                 outputs = [anon_out])
-            
+
             audio_input.clear(
-                fn = lambda: (None, None, ""),
-                outputs = [roh_out, anon_out, status_out])
-        return ui
-    
+                fn = lambda: (None, None, "", None),
+                outputs = [roh_out, anon_out, status_out, audio_playback])
+        return ui    
     def _get_transcriber(self, engine_value: str):
         if engine_value not in self.transcribers:
             self.transcribers[engine_value] = TranscriberFactory.createTranscriber(
