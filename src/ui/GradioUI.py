@@ -90,6 +90,7 @@ class GradioUI:
             return
 
         progress(0.2, desc = f"📝 Transkribiere Disponent...")
+        # FK-TODO: wrap self.transcriber.transcribe() with a method which merges consecutive segments of the same speaker and returns a list of dicts with keys "start", "end" (adapted because of merge), "speaker", "text"
         seg_dispatcher = self.transcriber.transcribe(audio_dispatcher, speaker = "Disponent")
 
         progress(0.5, desc=f"📝 Transkribiere Anrufer...")
