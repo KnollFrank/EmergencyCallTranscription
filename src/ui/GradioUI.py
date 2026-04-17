@@ -29,7 +29,7 @@ class GradioUI:
         ) as ui:
             gradio.Markdown("# Notruf-Transkription & Anonymisierung")
 
-            with gradio.Group():
+            with gradio.Column(variant="panel"):
                 gradio.Markdown("### Schritt 1: Eingabe & Einstellungen")
                 with gradio.Row():
                     with gradio.Column(scale = 1):
@@ -70,7 +70,7 @@ class GradioUI:
                     interactive = False,
                     elem_id = "status-box")
 
-            with gradio.Group():
+            with gradio.Column(variant="panel"):
                 gradio.Markdown("### Schritt 2: Transkription & Korrektur")
                 audio_playback = gradio.Audio(
                     label = "Audio-Wiedergabe",
@@ -89,7 +89,7 @@ class GradioUI:
                     value = "Anonymisierung starten ↓", 
                     variant = "primary")
 
-            with gradio.Group():
+            with gradio.Column(variant="panel"):
                 gradio.Markdown("### Schritt 3: Anonymisiertes Ergebnis")
                 anon_out = gradio.Dataframe(
                     headers = headers,
