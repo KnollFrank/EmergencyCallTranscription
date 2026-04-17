@@ -107,14 +107,16 @@ class GradioUI:
         progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
         segments = GradioUI._merge_dialogue(seg_dispatcher, seg_caller)
         
-        # FK-TODO: extract method
-        table_data = []
-        for seg in segments:
-            time_str = f"{seg['start']:06.2f}s – {seg['end']:06.2f}s"
-            table_data.append([time_str, seg["speaker"], seg["text"]])
-
         progress(1.0, desc = "✅ Transcription complete")
-        yield table_data, None, f"✅ Transcription finished ({self.engine}). You can now edit the text in the table."
+        yield GradioUI._getTableData(segments), None, f"✅ Transcription finished ({self.engine}). You can now edit the text in the table."
+
+    @staticmethod
+    def _getTableData(segments):
+        def getTableRow(segment):
+            timestamp = f"{segment['start']:06.2f}s – {segment['end']:06.2f}s"
+            return [timestamp, segment["speaker"], segment["text"]]
+        
+        return [getTableRow(segment) for segment in segments]
 
     def _anonymize(self, table_data):
         """
