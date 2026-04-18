@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 
 def launchUI():
     language = "de"
-    engine = Engine.FASTER_WHISPER
+    engine = Engine.DUMMY
     gradioUI = GradioUI(
         transcriber = TranscriberFactory.createTranscriber(
             engine = engine,

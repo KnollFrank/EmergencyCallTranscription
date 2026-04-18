@@ -2,6 +2,7 @@ from .Engine import Engine
 from .Model import Model
 from .FasterWhisperTranscriber import FasterWhisperTranscriber
 from .WhisperXTranscriber import WhisperXTranscriber
+from .DummyTranscriber import DummyTranscriber
 
 class TranscriberFactory:
     
@@ -28,3 +29,5 @@ class TranscriberFactory:
                     batch_size = batch_size,
                     beam_size = beam_size,
                     threads = 12)
+            case Engine.DUMMY:
+                return DummyTranscriber()
