@@ -3,7 +3,6 @@ import gradio
 import librosa
 import numpy as np
 from transcriber.Engine import Engine
-from transcriber.TranscriberFactory import TranscriberFactory
 from transcriber.Model import Model
 from transcriber.Transcriber import Transcriber
 from typing import Callable
