@@ -94,7 +94,7 @@ class GradioUI:
                 fn = lambda: (None, None, "", None),
                 outputs = [raw_out, anon_out, status_out, audio_playback])
         return ui
-
+    
     def _createTranscript(self, label):
         return gradio.Dataframe(
                     headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"],
@@ -103,9 +103,6 @@ class GradioUI:
                     label = label,
                     interactive = True)
     
-    def _get_transcriber(self, engine_value: str):
-        return self.transcriberFactory(Engine(engine_value));
-
     def _transcribe(self, audio_path, engine_name, channel_assignment, progress = gradio.Progress()):
         """
         Transcribes audio and yields the formatted dataframe rows.
@@ -121,7 +118,7 @@ class GradioUI:
             yield None, None, f"❌ Fehler beim Laden/Prüfen der WAV-Datei: {e}"
             return
 
-        transcriber = self._get_transcriber(engine_name)
+        transcriber = self.transcriberFactory(Engine(engine_name))
         progress(0.2, desc = f"📝 Transkribiere Disponent...")
         seg_dispatcher = transcriber.transcribe(audioPair.dispatcherAudio, speaker = "Disponent")
 
@@ -133,6 +130,14 @@ class GradioUI:
         
         progress(1.0, desc = "✅ Transkription abgeschlossen")
         yield GradioUI._getTableData(segments), None, f"✅ Transkription abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
+
+    @staticmethod
+    def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
+        """
+        Sorts all segments chronologically by start time and merges consecutive segments of the same speaker.
+        """
+        sorted_segments = sorted(segments_dispatcher + segments_caller, key = lambda s: s["start"])
+        return TranscriptSimplifier.mergeConsecutiveSegments(sorted_segments)
 
     @staticmethod
     def _getTableData(segments):
@@ -167,11 +172,3 @@ class GradioUI:
     def _anonymizeRow(self, row):
         anon_text, _ = self.anonymizer.anonymize(str(row[2]))
         return [row[0], row[1], anon_text]
-
-    @staticmethod
-    def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
-        """
-        Sorts all segments chronologically by start time and merges consecutive segments of the same speaker.
-        """
-        sorted_segments = sorted(segments_dispatcher + segments_caller, key = lambda s: s["start"])
-        return TranscriptSimplifier.mergeConsecutiveSegments(sorted_segments)
