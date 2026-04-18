@@ -3,7 +3,7 @@ import gradio
 import librosa
 import numpy as np
 from transcriber.Engine import Engine
-from transcriber.Model import Model
+from .ChannelAssignment import ChannelAssignment
 from transcriber.Transcriber import Transcriber
 from typing import Callable
 
@@ -47,13 +47,12 @@ class GradioUI:
                             lines = 1)
                     with gradio.Column(scale = 1):
                         engine_dropdown = gradio.Dropdown(
-                            choices = [e.value for e in Engine], 
+                            choices = [engine.value for engine in Engine], 
                             value = Engine.FASTER_WHISPER,
                             label = "Transkriptions-Engine")
                         channel_assignment = gradio.Radio(
-                            # FK-TODO: make Enum from this two choices analoguous to Engine
-                            choices = ["Disponent (links) / Anrufer (rechts)", "Anrufer (links) / Disponent (rechts)"],
-                            value = "Disponent (links) / Anrufer (rechts)",
+                            choices = [channelAssignment.value for channelAssignment in ChannelAssignment],
+                            value = ChannelAssignment.DISPATCHER_LEFT_CALLER_RIGHT,
                             label = "Kanalzuordnung (Kanal 0 / Kanal 1)")
                 transcribe_btn = gradio.Button(
                     value = "Transkription starten ↓",
@@ -128,14 +127,11 @@ class GradioUI:
                 raise ValueError(f"Die Datei muss eine Abtastrate von 8 kHz haben, hat aber {sr / 1000:.1f} kHz.")
 
             progress(0.15, desc="🔊 Isoliere & resample Kanäle...")
-            if channel_assignment == "Disponent (links) / Anrufer (rechts)":
-                disp_idx, caller_idx = 0, 1
-            else:
-                disp_idx, caller_idx = 1, 0
+            channelPair = ChannelAssignment(channel_assignment).getChannelPair()
 
             target_sr = 16000  # Resample to 16kHz for WhisperX
-            audio_dispatcher = librosa.resample(audio[disp_idx].astype("float32"), orig_sr=sr, target_sr=target_sr)
-            audio_caller = librosa.resample(audio[caller_idx].astype("float32"), orig_sr=sr, target_sr=target_sr)
+            audio_dispatcher = librosa.resample(audio[channelPair.dispatcherChannel].astype("float32"), orig_sr=sr, target_sr=target_sr)
+            audio_caller = librosa.resample(audio[channelPair.callerChannel].astype("float32"), orig_sr=sr, target_sr=target_sr)
         except Exception as e:
             yield None, None, f"❌ Fehler beim Laden/Prüfen der WAV-Datei: {e}"
             return
