@@ -1,5 +1,5 @@
 import os
-import gradio
+import gradio, gradio.themes as themes
 from transcriber.Engine import Engine
 from common.ChannelAssignment import ChannelAssignment
 from common.Audios import Audios
@@ -7,6 +7,8 @@ from transcriber.Transcriber import Transcriber
 from typing import Callable
 
 class GradioUI:
+
+    _theme = themes.Soft()
 
     def __init__(self, transcriberFactory: Callable[[Engine], Transcriber], anonymizer):
         self.transcriberFactory = transcriberFactory
@@ -18,13 +20,13 @@ class GradioUI:
             server_port = server_port,
             share = False,
             show_error = True,
-            theme = gradio.themes.Soft(),
+            theme = GradioUI._theme,
             css = ".footer { font-size: 0.8em; color: #888; } #status-box { border: 1px solid #ddd; }")
 
     def _createUI(self):
         with gradio.Blocks(
             title = "Notruf-Transkription",
-            theme = gradio.themes.Soft()
+            theme = GradioUI._theme
         ) as ui:
             gradio.Markdown("# Notruf-Transkription & Anonymisierung")
             with gradio.Column(variant = "panel"):
@@ -67,26 +69,13 @@ class GradioUI:
                     label = "Audio-Wiedergabe",
                     type = "filepath",
                     interactive = False)
-                headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"]
-                roh_out = gradio.Dataframe(
-                    headers = headers,
-                    datatype = ["str", "str", "str"],
-                    # FK-TODO: col_count is deprecated
-                    col_count = (3, "fixed"),
-                    label = "📄 Gesprächsprotokoll",
-                    interactive = True)
+                raw_out = self._createTranscript("📄 Gesprächsprotokoll")
                 anon_btn = gradio.Button(
                     value = "Anonymisierung starten ↓", 
                     variant = "primary")
             with gradio.Column(variant = "panel"):
                 gradio.Markdown("### Schritt 3: Anonymisiertes Ergebnis")
-                anon_out = gradio.Dataframe(
-                    headers = headers,
-                    datatype = ["str", "str", "str"],
-                    # FK-TODO: col_count is deprecated
-                    col_count = (3, "fixed"),
-                    label = "🔒 Anonymisiertes Gesprächsprotokoll",
-                    interactive = True)
+                anon_out = self._createTranscript("🔒 Anonymisiertes Gesprächsprotokoll")
             audio_input.change(
                 fn = lambda path: (os.path.basename(path) if path else "", path),
                 inputs = [audio_input],
@@ -94,16 +83,24 @@ class GradioUI:
             transcribe_btn.click(
                 fn = self._transcribe,
                 inputs = [audio_input, engine_dropdown, channel_assignment],
-                outputs = [roh_out, anon_out, status_out],
+                outputs = [raw_out, anon_out, status_out],
                 show_progress_on = [status_out])
             anon_btn.click(
                 fn = self._anonymize,
-                inputs = [roh_out],
+                inputs = [raw_out],
                 outputs = [anon_out])
             audio_input.clear(
                 fn = lambda: (None, None, "", None),
-                outputs = [roh_out, anon_out, status_out, audio_playback])
+                outputs = [raw_out, anon_out, status_out, audio_playback])
         return ui
+
+    def _createTranscript(self, label):
+        return gradio.Dataframe(
+                    headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"],
+                    datatype = ["str", "str", "str"],
+                    column_widths = ["20%", "15%", "65%"],
+                    label = label,
+                    interactive = True)
     
     def _get_transcriber(self, engine_value: str):
         return self.transcriberFactory(Engine(engine_value));
