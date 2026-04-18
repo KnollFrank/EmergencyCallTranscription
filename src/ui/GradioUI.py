@@ -5,13 +5,14 @@ import numpy as np
 from transcriber.Engine import Engine
 from transcriber.TranscriberFactory import TranscriberFactory
 from transcriber.Model import Model
+from transcriber.Transcriber import Transcriber
+from typing import Callable
 
 class GradioUI:
 
-    def __init__(self, transcriber, anonymizer, engine: Engine):
-        self.transcribers = {engine.value: transcriber}
+    def __init__(self, transcriberFactory: Callable[[Engine], Transcriber], anonymizer):
+        self.transcriberFactory = transcriberFactory
         self.anonymizer = anonymizer
-        self.engine = engine.value
 
     def launch(self, server_name, server_port):
         self._createUI().launch(
@@ -51,7 +52,7 @@ class GradioUI:
                     with gradio.Column(scale = 1):
                         engine_dropdown = gradio.Dropdown(
                             choices = [e.value for e in Engine], 
-                            value = self.engine, 
+                            value = Engine.FASTER_WHISPER,
                             label = "Transkriptions-Engine"
                         )
                         channel_assignment = gradio.Radio(
@@ -117,16 +118,10 @@ class GradioUI:
             audio_input.clear(
                 fn = lambda: (None, None, "", None),
                 outputs = [roh_out, anon_out, status_out, audio_playback])
-        return ui    
+        return ui
+    
     def _get_transcriber(self, engine_value: str):
-        if engine_value not in self.transcribers:
-            self.transcribers[engine_value] = TranscriberFactory.createTranscriber(
-                engine = Engine(engine_value),
-                model_size = Model.largeV3,
-                language = "de",
-                batch_size = 4
-            )
-        return self.transcribers[engine_value]
+        return self.transcriberFactory(Engine(engine_value));
 
     def _transcribe(self, audio_path, engine_name, channel_assignment, progress = gradio.Progress()):
         """

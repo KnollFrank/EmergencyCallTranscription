@@ -15,15 +15,14 @@ log = logging.getLogger(__name__)
 
 def launchUI():
     language = "de"
-    engine = Engine.DUMMY
     gradioUI = GradioUI(
-        transcriber = TranscriberFactory.createTranscriber(
-            engine = engine,
-            model_size = Model.largeV3,
-            language = language,
-            batch_size = 4),
-        anonymizer = AnonymizerFactory.createAnonymizer(language),
-        engine = engine)
+        transcriberFactory = (
+            lambda engine: TranscriberFactory.createTranscriber(
+                engine = engine,
+                model_size = Model.largeV3,
+                language = language,
+                batch_size = 4)),
+        anonymizer = AnonymizerFactory.createAnonymizer(language))
     gradioUI.launch(server_name = "127.0.0.1", server_port = 7860)
 
 

@@ -1,8 +1,9 @@
 from faster_whisper import WhisperModel
 import numpy as np
 from .Model import Model
+from .Transcriber import Transcriber
 
-class FasterWhisperTranscriber:
+class FasterWhisperTranscriber(Transcriber):
 
     def __init__(self, model_size: Model, device, compute_type, language, beam_size):
         self.model = WhisperModel(

@@ -1,6 +1,7 @@
 import numpy as np
+from .Transcriber import Transcriber
 
-class DummyTranscriber:
+class DummyTranscriber(Transcriber):
 
     def transcribe(self, audio_16k: np.ndarray, speaker: str) -> list[dict]:
         match speaker:

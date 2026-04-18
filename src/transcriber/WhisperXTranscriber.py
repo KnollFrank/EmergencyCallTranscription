@@ -2,12 +2,12 @@ import whisperx
 import numpy as np
 import soundfile
 import tempfile
-import os
 import gc
 from pathlib import Path
+from .Transcriber import Transcriber
 from .Model import Model
 
-class WhisperXTranscriber:
+class WhisperXTranscriber(Transcriber):
 
     def __init__(self, model_size: Model, device, compute_type, language, batch_size, beam_size, threads):
         self.model = whisperx.load_model(
