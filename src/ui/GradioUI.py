@@ -3,6 +3,7 @@ import gradio, gradio.themes as themes
 from transcriber.Engine import Engine
 from common.ChannelAssignment import ChannelAssignment
 from common.Audios import Audios
+from common.TranscriptSimplifier import TranscriptSimplifier
 from transcriber.Transcriber import Transcriber
 from typing import Callable
 
@@ -113,7 +114,6 @@ class GradioUI:
             yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
             return
 
-        # FK-TODO: extract method
         try:
             progress(0.1, desc="🔊 Isoliere & resample Kanäle...")
             audioPair = Audios.isolateAndResampleChannelsTo16kHz(audio_path, ChannelAssignment(channel_assignment))
@@ -133,29 +133,6 @@ class GradioUI:
         
         progress(1.0, desc = "✅ Transkription abgeschlossen")
         yield GradioUI._getTableData(segments), None, f"✅ Transkription abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
-
-    # FK-TODO: add unit test
-    @staticmethod
-    def _merge_consecutive_segments(segments: list[dict]) -> list[dict]:
-        """
-        Merges consecutive segments of the same speaker.
-        """
-        if not segments:
-            return []
-            
-        merged = []
-        current = segments[0].copy()
-        
-        for seg in segments[1:]:
-            if seg["speaker"] == current["speaker"]:
-                current["end"] = seg["end"]
-                current["text"] += " " + seg["text"].strip()
-            else:
-                merged.append(current)
-                current = seg.copy()
-        
-        merged.append(current)
-        return merged
 
     @staticmethod
     def _getTableData(segments):
@@ -197,4 +174,4 @@ class GradioUI:
         Sorts all segments chronologically by start time and merges consecutive segments of the same speaker.
         """
         sorted_segments = sorted(segments_dispatcher + segments_caller, key = lambda s: s["start"])
-        return GradioUI._merge_consecutive_segments(sorted_segments)
+        return TranscriptSimplifier.mergeConsecutiveSegments(sorted_segments)
