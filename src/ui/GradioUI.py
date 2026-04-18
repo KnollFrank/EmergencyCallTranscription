@@ -1,9 +1,8 @@
 import os
 import gradio
-import librosa
-import numpy as np
 from transcriber.Engine import Engine
-from .ChannelAssignment import ChannelAssignment
+from common.ChannelAssignment import ChannelAssignment
+from common.Audios import Audios
 from transcriber.Transcriber import Transcriber
 from typing import Callable
 
@@ -72,6 +71,7 @@ class GradioUI:
                 roh_out = gradio.Dataframe(
                     headers = headers,
                     datatype = ["str", "str", "str"],
+                    # FK-TODO: col_count is deprecated
                     col_count = (3, "fixed"),
                     label = "📄 Gesprächsprotokoll",
                     interactive = True)
@@ -83,6 +83,7 @@ class GradioUI:
                 anon_out = gradio.Dataframe(
                     headers = headers,
                     datatype = ["str", "str", "str"],
+                    # FK-TODO: col_count is deprecated
                     col_count = (3, "fixed"),
                     label = "🔒 Anonymisiertes Gesprächsprotokoll",
                     interactive = True)
@@ -117,31 +118,18 @@ class GradioUI:
 
         # FK-TODO: extract method
         try:
-            progress(0.1, desc="🔍 Prüfe WAV-Datei...")
-            audio, sr = librosa.load(audio_path, sr=None, mono=False)
-
-            if not (audio.ndim == 2 and audio.shape[0] == 2):
-                raise ValueError(f"Die Datei muss 2 Kanäle (Stereo) haben, hat aber {audio.shape[0] if audio.ndim == 2 else 1}.")
-
-            if sr != 8000:
-                raise ValueError(f"Die Datei muss eine Abtastrate von 8 kHz haben, hat aber {sr / 1000:.1f} kHz.")
-
-            progress(0.15, desc="🔊 Isoliere & resample Kanäle...")
-            channelPair = ChannelAssignment(channel_assignment).getChannelPair()
-
-            target_sr = 16000  # Resample to 16kHz for WhisperX
-            audio_dispatcher = librosa.resample(audio[channelPair.dispatcherChannel].astype("float32"), orig_sr=sr, target_sr=target_sr)
-            audio_caller = librosa.resample(audio[channelPair.callerChannel].astype("float32"), orig_sr=sr, target_sr=target_sr)
+            progress(0.1, desc="🔊 Isoliere & resample Kanäle...")
+            audioPair = Audios.isolateAndResampleChannelsTo16kHz(audio_path, ChannelAssignment(channel_assignment))
         except Exception as e:
             yield None, None, f"❌ Fehler beim Laden/Prüfen der WAV-Datei: {e}"
             return
 
         transcriber = self._get_transcriber(engine_name)
         progress(0.2, desc = f"📝 Transkribiere Disponent...")
-        seg_dispatcher = transcriber.transcribe(audio_dispatcher, speaker = "Disponent")
+        seg_dispatcher = transcriber.transcribe(audioPair.dispatcherAudio, speaker = "Disponent")
 
         progress(0.5, desc=f"📝 Transkribiere Anrufer...")
-        seg_caller = transcriber.transcribe(audio_caller, speaker = "Anrufer")
+        seg_caller = transcriber.transcribe(audioPair.callerAudio, speaker = "Anrufer")
 
         progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
         segments = GradioUI._merge_dialogue(seg_dispatcher, seg_caller)
