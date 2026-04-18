@@ -1,6 +1,5 @@
 class TranscriptSimplifier:
 
-    # FK-TODO: add unit test
     @staticmethod
     def mergeConsecutiveSegments(segments: list[dict]) -> list[dict]:
         """
