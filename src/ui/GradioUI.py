@@ -161,7 +161,7 @@ class GradioUI:
         progress(1.0, desc = "✅ Transkription abgeschlossen")
         
         end_time = time.time()
-        yield GradioUI._getTableData(segments), None, f"✅ Transkription in {GradioUI._format_time(end_time - start_time)} Minuten:Sekunden abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
+        yield GradioUI._getTableData(segments), None, f"✅ Transkription in {GradioUI._format_time(end_time - start_time)} (Minuten:Sekunden) abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
 
     @staticmethod
     def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
