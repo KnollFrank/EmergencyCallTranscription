@@ -26,18 +26,12 @@ class GradioUI:
                 .footer { font-size: 0.8em; color: #888; }
                 #status-box { border: 1px solid #ddd; }
                 
-                /* 1. Prevent vertical scrolling in modern Gradio (6.x) */
-                .transcript-table,
-                .transcript-table [data-testid="dataframe-component"],
-                .transcript-table [data-testid="table"],
-                .transcript-table .table-wrap,
-                .transcript-table .wrapper,
-                .transcript-table > div,
-                .transcript-table table,
-                .transcript-table tbody {
+                /* 1. Prevent vertical scrolling absolutely (Targets ALL inner divs) */
+                .transcript-table {
+                    height: fit-content !important; 
+                }
+                .transcript-table * {
                     max-height: none !important;
-                    height: auto !important;
-                    overflow: visible !important;
                     overflow-y: visible !important;
                 }
 
@@ -45,13 +39,13 @@ class GradioUI:
                 .transcript-table th:nth-child(1), .transcript-table td:nth-child(1),
                 .transcript-table th:nth-child(2), .transcript-table td:nth-child(2) {
                     width: 1% !important;
-                    min-width: max-content !important; /* Ensures the column doesn't collapse below content size */
+                    min-width: max-content !important;
                     white-space: nowrap !important;
                 }
 
                 /* 3. Column 3: Expand and wrap */
                 .transcript-table th:nth-child(3), .transcript-table td:nth-child(3) {
-                    width: 100% !important; /* Forces the column to fill the remaining horizontal space */
+                    width: 100% !important;
                     white-space: normal !important;
                     word-wrap: break-word !important;
                     overflow-wrap: break-word !important;
@@ -120,7 +114,7 @@ class GradioUI:
             anon_btn.click(
                 fn = self._anonymize,
                 inputs = [raw_out],
-                outputs = [anon_out])
+                outputs = [raw_out, anon_out])
             audio_input.clear(
                 fn = lambda: (None, None, "", None),
                 outputs = [raw_out, anon_out, status_out, audio_playback])
@@ -133,6 +127,7 @@ class GradioUI:
                     label = label,
                     interactive = True,
                     wrap = True, 
+                    max_height = 10000,
                     elem_classes=["transcript-table"])
 
     def _transcribe(self, audio_path, engine_name, channel_assignment, progress = gradio.Progress()):
@@ -187,12 +182,12 @@ class GradioUI:
         return [getTableRow(segment) for segment in segments]
 
     def _anonymize(self, table_data):
-        """
-        Anonymizes ONLY the 'Gesprächsinhalt' (third) column of the provided table data.
-        """
+        yield None, None
         if table_data is None or len(table_data) == 0:
-            return None
-        return self._anonymizeRows(GradioUI._getRows(table_data))
+            return
+        anonymized_rows = self._anonymizeRows(GradioUI._getRows(table_data))
+        # Update anon_out with the result, keep raw_out cleared
+        yield None, anonymized_rows
 
     @staticmethod
     def _getRows(table_data):
