@@ -95,13 +95,13 @@ class GradioUI:
                     label = "Audio-Wiedergabe",
                     type = "filepath",
                     interactive = False)
-                raw_out = self._createTranscript("📄 Gesprächsprotokoll")
+                raw_out = self._createTranscript("📄 Gesprächsprotokoll", "Gesprächsinhalt")
                 anon_btn = gradio.Button(
                     value = "Anonymisierung starten ↓", 
                     variant = "primary")
             with gradio.Column(variant = "panel"):
                 gradio.Markdown("### Schritt 3: Anonymisiertes Ergebnis")
-                anon_out = self._createTranscript("🔒 Anonymisiertes Gesprächsprotokoll")
+                anon_out = self._createTranscript("🔒 Anonymisiertes Gesprächsprotokoll", "anonymisierter Gesprächsinhalt")
             audio_input.change(
                 fn = lambda path: (os.path.basename(path) if path else "", path),
                 inputs = [audio_input],
@@ -120,9 +120,9 @@ class GradioUI:
                 outputs = [raw_out, anon_out, status_out, audio_playback])
         return ui
     
-    def _createTranscript(self, label):
+    def _createTranscript(self, label, content_column_header):
         return gradio.Dataframe(
-                    headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"],
+                    headers = ["Zeitstempel", "Rolle", content_column_header],
                     datatype = ["str", "str", "str"],
                     label = label,
                     interactive = True,
