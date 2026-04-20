@@ -22,13 +22,44 @@ class GradioUI:
             share = False,
             show_error = True,
             theme = GradioUI._theme,
-            css = ".footer { font-size: 0.8em; color: #888; } #status-box { border: 1px solid #ddd; }")
+            css = """
+                .footer { font-size: 0.8em; color: #888; }
+                #status-box { border: 1px solid #ddd; }
+                
+                /* 1. Prevent vertical scrolling in modern Gradio (6.x) */
+                .transcript-table,
+                .transcript-table [data-testid="dataframe-component"],
+                .transcript-table [data-testid="table"],
+                .transcript-table .table-wrap,
+                .transcript-table .wrapper,
+                .transcript-table > div,
+                .transcript-table table,
+                .transcript-table tbody {
+                    max-height: none !important;
+                    height: auto !important;
+                    overflow: visible !important;
+                    overflow-y: visible !important;
+                }
+
+                /* 2. Columns 1 and 2: Shrink-to-fit */
+                .transcript-table th:nth-child(1), .transcript-table td:nth-child(1),
+                .transcript-table th:nth-child(2), .transcript-table td:nth-child(2) {
+                    width: 1% !important;
+                    min-width: max-content !important; /* Ensures the column doesn't collapse below content size */
+                    white-space: nowrap !important;
+                }
+
+                /* 3. Column 3: Expand and wrap */
+                .transcript-table th:nth-child(3), .transcript-table td:nth-child(3) {
+                    width: 100% !important; /* Forces the column to fill the remaining horizontal space */
+                    white-space: normal !important;
+                    word-wrap: break-word !important;
+                    overflow-wrap: break-word !important;
+                }
+            """)
 
     def _createUI(self):
-        with gradio.Blocks(
-            title = "Notruf-Transkription",
-            theme = GradioUI._theme
-        ) as ui:
+        with gradio.Blocks(title = "Notruf-Transkription") as ui:
             gradio.Markdown("# Notruf-Transkription & Anonymisierung")
             with gradio.Column(variant = "panel"):
                 gradio.Markdown("### Schritt 1: Eingabe & Einstellungen")
@@ -99,10 +130,11 @@ class GradioUI:
         return gradio.Dataframe(
                     headers = ["Zeitstempel", "Rolle", "Gesprächsinhalt"],
                     datatype = ["str", "str", "str"],
-                    column_widths = ["20%", "15%", "65%"],
                     label = label,
-                    interactive = True)
-    
+                    interactive = True,
+                    wrap = True, 
+                    elem_classes=["transcript-table"])
+
     def _transcribe(self, audio_path, engine_name, channel_assignment, progress = gradio.Progress()):
         """
         Transcribes audio and yields the formatted dataframe rows.
