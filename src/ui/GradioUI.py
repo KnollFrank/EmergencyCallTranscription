@@ -114,7 +114,7 @@ class GradioUI:
             anon_btn.click(
                 fn = self._anonymize,
                 inputs = [raw_out],
-                outputs = [raw_out, anon_out])
+                outputs = [anon_out])
             audio_input.clear(
                 fn = lambda: (None, None, "", None),
                 outputs = [raw_out, anon_out, status_out, audio_playback])
@@ -134,6 +134,7 @@ class GradioUI:
         """
         Transcribes audio and yields the formatted dataframe rows.
         """
+        yield None, None, ""
         if audio_path is None:
             yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
             return
@@ -182,12 +183,11 @@ class GradioUI:
         return [getTableRow(segment) for segment in segments]
 
     def _anonymize(self, table_data):
-        yield None, None
+        yield None
         if table_data is None or len(table_data) == 0:
             return
         anonymized_rows = self._anonymizeRows(GradioUI._getRows(table_data))
-        # Update anon_out with the result, keep raw_out cleared
-        yield None, anonymized_rows
+        yield anonymized_rows
 
     @staticmethod
     def _getRows(table_data):
