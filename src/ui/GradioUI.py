@@ -1,4 +1,5 @@
 import os
+import time
 import gradio, gradio.themes as themes
 from transcriber.Engine import Engine
 from common.ChannelAssignment import ChannelAssignment
@@ -134,6 +135,7 @@ class GradioUI:
         """
         Transcribes audio and yields the formatted dataframe rows.
         """
+        start_time = time.time()
         yield None, None, ""
         if audio_path is None:
             yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
@@ -157,7 +159,9 @@ class GradioUI:
         segments = GradioUI._merge_dialogue(seg_dispatcher, seg_caller)
         
         progress(1.0, desc = "✅ Transkription abgeschlossen")
-        yield GradioUI._getTableData(segments), None, f"✅ Transkription abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
+        
+        end_time = time.time()
+        yield GradioUI._getTableData(segments), None, f"✅ Transkription in {GradioUI._format_time(end_time - start_time)} Minuten:Sekunden abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
 
     @staticmethod
     def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
@@ -169,19 +173,20 @@ class GradioUI:
 
     @staticmethod
     def _getTableData(segments):
-        def format_time(seconds):
-            minutes = int(seconds // 60)
-            secs = int(seconds % 60)
-            return f"{minutes:02d}:{secs:02d}"
-
         def getTableRow(segment):
-            start_time = format_time(segment['start'])
-            end_time = format_time(segment['end'])
+            start_time = GradioUI._format_time(segment['start'])
+            end_time = GradioUI._format_time(segment['end'])
             timestamp = f"{start_time} – {end_time}"
             return [timestamp, segment["speaker"], segment["text"]]
         
         return [getTableRow(segment) for segment in segments]
 
+    @staticmethod
+    def _format_time(seconds):
+        minutes = int(seconds // 60)
+        secs = int(seconds % 60)
+        return f"{minutes:02d}:{secs:02d}"
+    
     def _anonymize(self, table_data):
         yield None
         if table_data is None or len(table_data) == 0:
