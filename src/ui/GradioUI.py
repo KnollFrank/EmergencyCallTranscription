@@ -101,7 +101,7 @@ class GradioUI:
                     variant = "primary")
             with gradio.Column(variant = "panel"):
                 gradio.Markdown("### Schritt 3: Anonymisiertes Ergebnis")
-                anon_out = self._createTranscript("🔒 Anonymisiertes Gesprächsprotokoll", "anonymisierter Gesprächsinhalt")
+                anon_out = self._createTranscript("🔒 Anonymisiertes Gesprächsprotokoll", "Anonymisierter Gesprächsinhalt")
             audio_input.change(
                 fn = lambda path: (os.path.basename(path) if path else "", path),
                 inputs = [audio_input],
