@@ -7,33 +7,6 @@ Die Anwendung bietet eine Web-Oberfläche (Gradio), über die Notrufe (Stereo-WA
 **Hardware-Referenz:** Dell XPS 9320 · Intel i7-1360P · 32 GB RAM · Ubuntu 24.04 LTS  
 **Modus:** Vollständig lokal, keine Cloud-Anbindung notwendig, CPU-kompatibel.
 
----
-
-## Projektstruktur
-
-```text
-EmergencyCallTranscription/
-├── src/
-│   ├── EmergencyCallTranscription.py   # Haupt-Einstiegspunkt
-│   ├── anonymizer/                     # DSGVO-Anonymisierung (Presidio)
-│   │   ├── Anonymizer.py
-│   │   └── AnonymizerFactory.py
-│   ├── transcriber/                    # Transkriptions-Engines
-│   │   ├── Engine.py
-│   │   ├── FasterWhisperTranscriber.py
-│   │   ├── Model.py
-│   │   ├── TranscriberFactory.py
-│   │   └── WhisperXTranscriber.py
-│   └── ui/                             # Gradio Web-Interface
-│       └── GradioUI.py
-├── audio/                              # Beispiel-Audiodateien
-├── requirements.txt                    # Python-Abhängigkeiten
-├── setup_und_start.sh                  # Skript für Setup & Start
-└── README.md
-```
-
----
-
 ## Schnellstart
 
 ```bash
@@ -51,8 +24,6 @@ Das Skript:
 
 **Beim ersten Start:** Die Modelle (WhisperX / Faster-Whisper) werden von Hugging Face heruntergeladen (ca. 1.5 GB bis 3 GB je nach Modell) und lokal unter `~/.cache` gespeichert.
 
----
-
 ## Manueller Start (nach Installation)
 
 ```bash
@@ -60,8 +31,6 @@ cd EmergencyCallTranscription
 source venv/bin/activate
 python src/EmergencyCallTranscription.py
 ```
-
----
 
 ## Bedienung der Web-Oberfläche
 
@@ -77,8 +46,6 @@ Nach dem Klick auf "Transkription starten" wird das Audio verarbeitet. Das Ergeb
 
 ### Schritt 3: Anonymisiertes Ergebnis
 Ein Klick auf "Anonymisierung starten" leitet den (ggf. korrigierten) Text durch die Presidio-NLP-Pipeline. Das Resultat ist eine zweite Tabelle, in der sensible Daten wie Namen, Orte und Telefonnummern durch Platzhalter wie `<PERSON>`, `<LOCATION>` ersetzt wurden.
-
----
 
 ## Architektur & Pipeline
 
@@ -100,8 +67,6 @@ Manuelle Korrektur-Möglichkeit (Gradio Dataframe)
 Microsoft Presidio (spaCy de_core_news_lg)
 Erkennung & Ersetzung personenbezogener Daten (PII)
 ```
-
----
 
 ## DSGVO-Hinweise
 
