@@ -5,6 +5,7 @@ from transcriber.Engine import Engine
 from common.ChannelAssignment import ChannelAssignment
 from common.Audios import Audios
 from common.TranscriptSimplifier import TranscriptSimplifier
+from common.TimerBlock import TimerBlock
 from transcriber.Transcriber import Transcriber
 from typing import Callable
 
@@ -135,33 +136,31 @@ class GradioUI:
         """
         Transcribes audio and yields the formatted dataframe rows.
         """
-        start_time = time.time()
-        yield None, None, ""
-        if audio_path is None:
-            yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
-            return
+        with TimerBlock() as timer:
+            yield None, None, ""
+            if audio_path is None:
+                yield None, None, "⚠️ Bitte zuerst eine WAV-Datei hochladen."
+                return
 
-        try:
-            progress(0.1, desc="🔊 Isoliere & resample Kanäle...")
-            audioPair = Audios.isolateAndResampleChannelsTo16kHz(audio_path, ChannelAssignment(channel_assignment))
-        except Exception as e:
-            yield None, None, f"❌ Fehler beim Laden/Prüfen der WAV-Datei: {e}"
-            return
+            try:
+                progress(0.1, desc="🔊 Isoliere & resample Kanäle...")
+                audioPair = Audios.isolateAndResampleChannelsTo16kHz(audio_path, ChannelAssignment(channel_assignment))
+            except Exception as e:
+                yield None, None, f"❌ Fehler beim Laden/Prüfen der WAV-Datei: {e}"
+                return
 
-        transcriber = self.transcriberFactory(Engine(engine_name))
-        progress(0.2, desc = f"📝 Transkribiere Disponent...")
-        seg_dispatcher = transcriber.transcribe(audioPair.dispatcherAudio, speaker = "Disponent")
+            transcriber = self.transcriberFactory(Engine(engine_name))
+            progress(0.2, desc = f"📝 Transkribiere Disponent...")
+            seg_dispatcher = transcriber.transcribe(audioPair.dispatcherAudio, speaker = "Disponent")
 
-        progress(0.5, desc=f"📝 Transkribiere Anrufer...")
-        seg_caller = transcriber.transcribe(audioPair.callerAudio, speaker = "Anrufer")
+            progress(0.5, desc=f"📝 Transkribiere Anrufer...")
+            seg_caller = transcriber.transcribe(audioPair.callerAudio, speaker = "Anrufer")
 
-        progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
-        segments = GradioUI._merge_dialogue(seg_dispatcher, seg_caller)
-        
-        progress(1.0, desc = "✅ Transkription abgeschlossen")
-        
-        end_time = time.time()
-        yield GradioUI._getTableData(segments), None, f"✅ Transkription in {GradioUI._format_time(end_time - start_time)} (Minuten:Sekunden) abgeschlossen ({engine_name}). Sie können den Text nun in der Tabelle bearbeiten."
+            progress(0.8, desc = "🔗 Führe Dialog zusammen ...")
+            segments = GradioUI._merge_dialogue(seg_dispatcher, seg_caller)
+            
+            progress(1.0, desc = "✅ Transkription abgeschlossen")
+        yield GradioUI._getTableData(segments), None, f"✅ Transkription in {GradioUI._format_time(timer.end - timer.start)} (Minuten:Sekunden) abgeschlossen."
 
     @staticmethod
     def _merge_dialogue(segments_dispatcher: list[dict], segments_caller: list[dict]) -> list[dict]:
