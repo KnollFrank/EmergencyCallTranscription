@@ -9,12 +9,12 @@ Die Anwendung bietet eine Web-Oberfläche (Gradio), über die Notrufe (Stereo-WA
 
 ## Schnellstart
 
-**Hinweis:** Das Setup-Skript (`setup_und_start.sh`) ist ausschließlich für Linux-Systeme geeignet.
+**Hinweis:** Das Setup-Skript (`setup_and_start.sh`) ist ausschließlich für Linux-Systeme geeignet.
 
 ```bash
 cd EmergencyCallTranscription
-chmod +x setup_und_start.sh
-bash setup_und_start.sh
+chmod +x setup_and_start.sh
+bash setup_and_start.sh
 ```
 
 Das Skript:
